@@ -1,0 +1,47 @@
+{
+  "name": "@claude-skills/flowchart-generator",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "通用业务流程图生成器 - 根据业务描述自动生成交互式HTML流程图",
+  "main": "dist/index.js",
+  "bin": {
+    "flowchart": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "flowchart",
+    "business-process",
+    "visualization",
+    "html-generator",
+    "claude-skill",
+    "cli"
+  ],
+  "author": "Claude",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/claude-skills/flowchart-generator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/claude-skills/flowchart-generator/issues"
+  },
+  "homepage": "https://github.com/claude-skills/flowchart-generator#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}
