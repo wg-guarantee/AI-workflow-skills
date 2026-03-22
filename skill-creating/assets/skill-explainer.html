@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill 是什么？ — 交互式说明</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif; background: #0a0a0a; color: #e0e0e0; line-height: 1.6; }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+
+  h1 { font-size: 2.4em; font-weight: 700; margin-bottom: 8px; background: linear-gradient(135deg, #7c3aed, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .subtitle { color: #888; font-size: 1.1em; margin-bottom: 48px; }
+
+  /* TL;DR banner */
+  .tldr { background: linear-gradient(135deg, #7c3aed22, #06b6d422); border: 1px solid #7c3aed44; border-radius: 16px; padding: 24px 32px; margin-bottom: 48px; }
+  .tldr h2 { font-size: 1.2em; color: #c4b5fd; margin-bottom: 12px; }
+  .tldr p { font-size: 1.05em; color: #ccc; }
+  .tldr .highlight { color: #67e8f9; font-weight: 600; }
+
+  /* Anatomy */
+  .anatomy { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; margin-bottom: 48px; }
+  .anatomy h2 { font-size: 1.3em; margin-bottom: 20px; color: #c4b5fd; }
+  .file-tree { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.95em; line-height: 2; }
+  .file-tree .dir { color: #60a5fa; }
+  .file-tree .file { color: #a78bfa; }
+  .file-tree .comment { color: #555; }
+  .file-tree .required { background: #7c3aed22; padding: 2px 8px; border-radius: 4px; border-left: 3px solid #7c3aed; }
+  .file-tree .path-note { display: block; margin-top: 8px; font-size: 0.85em; color: #666; font-family: -apple-system, 'PingFang SC', sans-serif; }
+
+  /* Frontmatter visual */
+  .fm-demo { background: #1a1a2e; border-radius: 12px; padding: 24px; margin: 20px 0; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9em; }
+  .fm-demo .delimiter { color: #555; }
+  .fm-demo .key { color: #06b6d4; }
+  .fm-demo .value { color: #fbbf24; }
+  .fm-demo .body { color: #a78bfa; }
+  .fm-demo .annotation { color: #888; font-family: -apple-system, 'PingFang SC', sans-serif; font-size: 0.85em; display: block; margin-top: 4px; margin-bottom: 4px; padding-left: 20px; border-left: 2px solid #333; }
+
+  /* Comparison */
+  .compare { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 48px; }
+  @media (max-width: 700px) { .compare { grid-template-columns: 1fr; } }
+  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 24px; transition: border-color 0.3s, transform 0.2s; cursor: default; }
+  .card:hover { border-color: #7c3aed; transform: translateY(-2px); }
+  .card h3 { font-size: 1.1em; margin-bottom: 4px; }
+  .card .icon-large { font-size: 2em; margin-bottom: 12px; display: block; }
+  .card .tagline { color: #888; font-size: 0.9em; margin-bottom: 16px; }
+  .card ul { list-style: none; }
+  .card li { padding: 6px 0; font-size: 0.9em; }
+  .card li::before { content: '\2192 '; color: #7c3aed; }
+  .card.skill { border-top: 3px solid #7c3aed; }
+  .card.mcp { border-top: 3px solid #06b6d4; }
+  .card.prompt { border-top: 3px solid #f59e0b; }
+
+  /* Superpowers */
+  .powers { margin-bottom: 48px; }
+  .powers h2 { font-size: 1.3em; margin-bottom: 20px; color: #c4b5fd; }
+  .power { background: #141414; border: 1px solid #2a2a2a; border-radius: 12px; padding: 20px 24px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 16px; transition: border-color 0.3s; }
+  .power:hover { border-color: #7c3aed44; }
+  .power .icon { font-size: 1.5em; flex-shrink: 0; width: 40px; text-align: center; }
+  .power h4 { font-size: 1em; margin-bottom: 4px; }
+  .power p { font-size: 0.9em; color: #999; }
+  .power .vs { display: inline-block; background: #7c3aed22; color: #c4b5fd; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; margin-top: 6px; }
+
+  /* Loading visual */
+  .loading-demo { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 24px 32px; margin-bottom: 48px; }
+  .loading-demo h2 { font-size: 1.3em; margin-bottom: 16px; color: #c4b5fd; }
+  .load-stage { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #1a1a1a; }
+  .load-stage:last-child { border-bottom: none; }
+  .load-badge { font-size: 0.75em; padding: 3px 10px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+  .load-badge.always { background: #7c3aed33; color: #c4b5fd; }
+  .load-badge.trigger { background: #06b6d433; color: #67e8f9; }
+  .load-badge.needed { background: #f59e0b22; color: #fbbf24; }
+  .load-label { font-size: 0.9em; }
+  .load-cost { color: #555; font-size: 0.8em; margin-left: auto; }
+
+  /* Quick start */
+  .quickstart { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; margin-bottom: 48px; }
+  .quickstart h2 { font-size: 1.3em; margin-bottom: 20px; color: #c4b5fd; }
+  .step { display: flex; gap: 16px; margin-bottom: 16px; align-items: flex-start; }
+  .step-num { background: #7c3aed; color: white; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.85em; font-weight: 700; flex-shrink: 0; }
+  .step-content { flex: 1; }
+  .step-content code { background: #1a1a2e; padding: 2px 8px; border-radius: 4px; font-family: 'SF Mono', monospace; font-size: 0.9em; color: #67e8f9; }
+  .step-content p { margin-bottom: 4px; }
+
+  /* Interactive demo */
+  .demo-section { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; margin-bottom: 48px; }
+  .demo-section h2 { font-size: 1.3em; margin-bottom: 16px; color: #c4b5fd; }
+  .demo-toggle { display: inline-block; background: #7c3aed; color: white; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-size: 0.9em; border: none; margin-bottom: 16px; transition: background 0.2s; }
+  .demo-toggle:hover { background: #6d28d9; }
+  .demo-result { background: #1a1a2e; border-radius: 8px; padding: 16px; font-family: 'SF Mono', monospace; font-size: 0.85em; display: none; color: #a78bfa; white-space: pre-wrap; }
+  .demo-result.show { display: block; }
+
+  /* Footer */
+  .footer { text-align: center; color: #444; font-size: 0.8em; padding-top: 32px; border-top: 1px solid #1a1a1a; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h1>Skill 是什么？</h1>
+  <p class="subtitle">不是提示词，不是插件 -- 是 AI 的可复用知识包</p>
+
+  <!-- TL;DR -->
+  <div class="tldr">
+    <h2>一句话理解</h2>
+    <p>Skill 就是一个 <span class="highlight">Markdown 文件</span>，放在固定目录下，AI 会自动读取并按里面的指令工作。<br>
+    你可以把它理解为 <span class="highlight">"教 AI 一个新技能"</span> -- 持久的、自动触发的、可以带脚本的。</p>
+  </div>
+
+  <!-- Anatomy -->
+  <div class="anatomy">
+    <h2>一个 Skill 长什么样</h2>
+    <div class="file-tree">
+      <span class="dir">~/.claude/skills/</span> <span class="comment">&larr; 主目录（推荐）</span><br>
+      &nbsp;&nbsp;<span class="dir">my-skill/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file required">SKILL.md</span> <span class="comment">&larr; 必须有，skill 的全部</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">scripts/</span> <span class="comment">&larr; 可选，可执行的工具脚本</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">references/</span> <span class="comment">&larr; 可选，AI 按需读取的参考文档</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="dir">assets/</span> <span class="comment">&larr; 可选，模板、图片等资源文件</span><br>
+      <span class="path-note">
+        也支持: ~/.codebuddy/skills/ | 项目级 .claude/skills/ | .codebuddy/skills/
+      </span>
+    </div>
+
+    <div class="fm-demo">
+      <span class="delimiter">---</span><br>
+      <span class="key">name:</span> <span class="value">my-skill</span><br>
+      <span class="key">description:</span> <span class="value">Use when [触发条件]</span><br>
+      <span class="delimiter">---</span><br>
+      <span class="annotation">&uarr; Frontmatter：AI 的触发器。始终在内存里，只占几十字。</span>
+      <br>
+      <span class="body"># Skill Title</span><br>
+      <span class="body">具体指令...</span><br>
+      <span class="annotation">&uarr; Body：只有触发后才会读取，不触发不占资源。</span>
+    </div>
+  </div>
+
+  <!-- Quick Start -->
+  <div class="quickstart">
+    <h2>3 步创建你的第一个 Skill</h2>
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <p><strong>想一个你想让 AI 自动做的事</strong></p>
+        <p style="color:#888; font-size:0.9em;">比如：总结文章、翻译、写邮件、整理笔记、代码审查...</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <p><strong>创建文件</strong></p>
+        <p style="color:#888; font-size:0.9em;">告诉 AI "帮我创建一个 skill"，或者手动创建 <code>~/.claude/skills/my-skill/SKILL.md</code></p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <p><strong>用真实内容测试</strong></p>
+        <p style="color:#888; font-size:0.9em;">在新对话里贴内容，看 AI 是不是自动按你的 skill 处理了。不满意就改 SKILL.md，再试。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Comparison -->
+  <h2 style="font-size:1.3em; margin-bottom:20px; color:#c4b5fd;">三者的区别</h2>
+  <div class="compare">
+    <div class="card skill">
+      <span class="icon-large">&#x1F4D6;</span>
+      <h3>Skill</h3>
+      <p class="tagline">教 AI 方法（知识）</p>
+      <ul>
+        <li>自动触发，不用手动</li>
+        <li>可以带脚本和资源</li>
+        <li>可分享给别人</li>
+        <li>不触发不占上下文</li>
+        <li>类比：一本菜谱</li>
+      </ul>
+    </div>
+    <div class="card mcp">
+      <span class="icon-large">&#x1F527;</span>
+      <h3>MCP 工具</h3>
+      <p class="tagline">给 AI 能力（工具）</p>
+      <ul>
+        <li>连接外部服务</li>
+        <li>读写文件、调 API</li>
+        <li>AI 按需调用</li>
+        <li>不含工作流知识</li>
+        <li>类比：一把刀</li>
+      </ul>
+    </div>
+    <div class="card prompt">
+      <span class="icon-large">&#x1F4AC;</span>
+      <h3>提示词</h3>
+      <p class="tagline">临时的一次性指令</p>
+      <ul>
+        <li>手动粘贴才有效</li>
+        <li>只能是纯文字</li>
+        <li>换个对话就没了</li>
+        <li>贴进去就全占上下文</li>
+        <li>类比：口头吩咐</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Superpowers -->
+  <div class="powers">
+    <h2>Skill 的四个超能力</h2>
+    <div class="power">
+      <div class="icon">&#x26A1;</div>
+      <div>
+        <h4>自动触发</h4>
+        <p>你贴一段英文，不说任何指令，AI 自动按 skill 翻译。不用你记得粘贴提示词。</p>
+        <span class="vs">提示词：你不粘贴就没有</span>
+      </div>
+    </div>
+    <div class="power">
+      <div class="icon">&#x1F4E6;</div>
+      <div>
+        <h4>带脚本和资源</h4>
+        <p>Skill 可以打包 Python 脚本、参考文档、模板文件。PDF skill 带了完整处理脚本，不用每次重写代码。</p>
+        <span class="vs">提示词：只能是纯文字</span>
+      </div>
+    </div>
+    <div class="power">
+      <div class="icon">&#x1F4A1;</div>
+      <div>
+        <h4>上下文高效</h4>
+        <p>装 100 个 skill，平时只有 description 占内存（每个几十字）。需要时才加载完整内容。</p>
+        <span class="vs">提示词：贴进去就全占</span>
+      </div>
+    </div>
+    <div class="power">
+      <div class="icon">&#x1F91D;</div>
+      <div>
+        <h4>可分享</h4>
+        <p>你的 skill 复制给别人，别人装上就能用你的工作流。跨对话、跨项目、跨人。</p>
+        <span class="vs">提示词：存在你脑子里</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading stages -->
+  <div class="loading-demo">
+    <h2>渐进加载：装得多不会变慢</h2>
+    <div class="load-stage">
+      <span class="load-badge always">始终加载</span>
+      <span class="load-label">name + description（每个 skill 几十字）</span>
+      <span class="load-cost">~100 tokens</span>
+    </div>
+    <div class="load-stage">
+      <span class="load-badge trigger">触发时加载</span>
+      <span class="load-label">SKILL.md body（完整指令）</span>
+      <span class="load-cost">按需</span>
+    </div>
+    <div class="load-stage">
+      <span class="load-badge needed">需要时加载</span>
+      <span class="load-label">references/、scripts/（参考文档和脚本）</span>
+      <span class="load-cost">按需</span>
+    </div>
+  </div>
+
+  <!-- Interactive Demo -->
+  <div class="demo-section">
+    <h2>实际演示：看看你已经装了多少 Skill</h2>
+    <p style="color:#888; margin-bottom:12px; font-size:0.9em;">在终端运行以下命令，查看你已安装的所有 skill：</p>
+    <div class="fm-demo" style="margin:0;">
+      <span class="key">bash</span> <span class="value">~/.claude/skills/skill-creating/scripts/show-skills.sh</span><br>
+      <span class="comment"># 紧凑模式：</span><br>
+      <span class="key">bash</span> <span class="value">~/.claude/skills/skill-creating/scripts/show-skills.sh --compact</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    skill-creating v4 &middot; 这个页面本身就是 skill 的 assets/ 资源
+  </div>
+
+</div>
+</body>
+</html>
