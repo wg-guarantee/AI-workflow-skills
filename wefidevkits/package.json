@@ -7,8 +7,10 @@
     "generate": "node scripts/generate-skills.mjs",
     "validate": "node scripts/validate-skills.mjs",
     "build": "node scripts/generate-skills.mjs && node scripts/validate-skills.mjs",
-    "install:claude:user": "node scripts/install-claude.mjs --target user",
-    "install:claude:project": "node scripts/install-claude.mjs --target project",
+    "install:user": "npm run build && node scripts/install-claude.mjs --target user",
+    "install:project": "npm run build && node scripts/install-claude.mjs --target project",
+    "install:claude:user": "npm run install:user",
+    "install:claude:project": "npm run install:project",
     "package:claude-plugin": "node scripts/package-claude-plugin.mjs",
     "set:claude:commit-mode": "node scripts/set-commit-mode.mjs"
   }

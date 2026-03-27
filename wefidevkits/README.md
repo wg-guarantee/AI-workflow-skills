@@ -100,26 +100,26 @@ npm run build
 
 ## 安装到 Claude Code
 
+安装已简化为一步式命令，安装脚本会自动先构建再执行复制。
+
 ### 全局安装
 
 ```bash
-npm run build
-npm run install:claude:user
+npm run install:user
 ```
 
 ### 安装到某个项目
 
 ```bash
-npm run build
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project
+npm run install:project -- --project-dir /path/to/your/project
 ```
 
 安装时可直接指定 git 提交模式：
 
 ```bash
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode confirm-each
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode skill-governed
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode auto
+npm run install:project -- --project-dir /path/to/your/project --git-commit-mode confirm-each
+npm run install:project -- --project-dir /path/to/your/project --git-commit-mode skill-governed
+npm run install:project -- --project-dir /path/to/your/project --git-commit-mode auto
 ```
 
 后续切换模式：
@@ -149,7 +149,6 @@ node scripts/set-commit-mode.mjs --project-dir /path/to/your/project --mode auto
 cd /path/to/AI-workflow-skills
 git pull
 cd wefidevkits
-npm run build
 ```
 
 如果你只是在某个已安装了 skill 的业务项目目录里执行：
@@ -165,7 +164,7 @@ git pull
 重新执行：
 
 ```bash
-npm run install:claude:user
+npm run install:user
 ```
 
 这会把最新生成的 skills 覆盖复制到：
@@ -181,7 +180,7 @@ npm run install:claude:user
 重新执行：
 
 ```bash
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project
+npm run install:project -- --project-dir /path/to/your/project
 ```
 
 这会更新项目里的：
@@ -222,7 +221,7 @@ node scripts/install-claude.mjs --target project --project-dir /path/to/your/pro
 如果你在更新时显式传入：
 
 ```bash
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode confirm-each
+npm run install:project -- --project-dir /path/to/your/project --git-commit-mode confirm-each
 ```
 
 则会同步改写该项目的 git 提交策略。
@@ -263,8 +262,8 @@ npm run package:claude-plugin
 ```bash
 node scripts/generate-skills.mjs
 node scripts/validate-skills.mjs
-npm run install:claude:user
-node scripts/install-claude.mjs --target project --project-dir /path/to/project
+npm run install:user
+npm run install:project -- --project-dir /path/to/project
 npm run set:claude:commit-mode -- --project-dir /path/to/project --mode confirm-each
 npm run package:claude-plugin
 ```

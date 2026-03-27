@@ -35,14 +35,14 @@ Claude Code 技能集合仓库。
 
 ```bash
 cd wefidevkits
-npm run build
+npm run install:user
 ```
 
 如果要安装到 Claude Code 项目：
 
 ```bash
 cd wefidevkits
-node scripts/install-claude.mjs --target project --project-dir /path/to/your/project
+npm run install:project -- --project-dir /path/to/your/project
 ```
 
 ## 现有技能集合
