@@ -39,6 +39,13 @@ Do not say work is done, fixed, passing, or ready until fresh verification evide
 - opening or merging a PR
 - moving to the next task based on assumed success
 
+For financial or balance-affecting work, also apply before saying:
+
+- a transaction flow is safe
+- retries are handled
+- reconciliation is covered
+- funds cannot be duplicated, lost, or silently mutated
+
 ## Failure Signals
 
 - "This should work now."
@@ -50,3 +57,4 @@ Do not say work is done, fixed, passing, or ready until fresh verification evide
 
 - A concrete claim has matching fresh evidence.
 - The reported status matches the real verification result.
+- For financial work, evidence also covers transactional safety, idempotency, audit trail integrity, and the configured safety controls.

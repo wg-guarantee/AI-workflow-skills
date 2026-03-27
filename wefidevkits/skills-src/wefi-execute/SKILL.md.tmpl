@@ -39,6 +39,11 @@ The plan is the contract. Follow it in order, raise gaps explicitly, and do not 
 - Follow existing project patterns instead of introducing unrelated restructuring.
 - If a task reveals a real plan defect, stop and escalate instead of guessing.
 - If multiple failures suggest the plan is unsound, report that directly.
+- In financial flows, preserve invariants before convenience:
+  - no balance mutation without journaling
+  - no write path without idempotency protection
+  - no distributed side effect without an outcome or compensation model
+  - no success claim without traceable audit evidence
 
 ## Stop Conditions
 
@@ -48,6 +53,8 @@ Stop execution and escalate when:
 - a verification step repeatedly fails
 - the plan contradicts the existing codebase in a material way
 - completing the task requires design decisions that were never approved
+- a financial write path lacks atomicity, reversal handling, or uniqueness protection
+- the implementation would bypass journal, audit, limit, or reconciliation controls
 
 ## Exit Conditions
 

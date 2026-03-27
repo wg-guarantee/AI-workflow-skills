@@ -30,6 +30,19 @@ Do not begin code changes from this phase. This phase exists to reduce ambiguity
 - Prefer test-first execution when practical.
 - Avoid placeholders like `TODO`, `TBD`, or "handle edge cases later".
 
+## Financial-Grade Overlay
+
+When the plan affects financial state or money movement, the plan must translate the approved safeguards into explicit tasks for:
+
+- transaction boundaries and rollback behavior
+- reversal or compensation handlers
+- idempotency key propagation and database unique constraints
+- transaction state machine transitions and guards
+- signatures, digests, optimistic locking, or equivalent integrity controls
+- journaling before or with ledger mutation
+- reconciliation jobs, mismatch alerts, and limit enforcement
+- abnormal-flow circuit breaking or manual review thresholds
+
 ## Flow
 
 1. Review the approved design and confirm scope.
@@ -41,8 +54,9 @@ Do not begin code changes from this phase. This phase exists to reduce ambiguity
    - tests to write or update
    - commands to run
    - expected verification result
-5. Scan the plan for ambiguity, contradictions, and missing requirements.
-6. Save the plan and offer the next execution mode.
+5. If the domain is financial, add the invariant each task must preserve.
+6. Scan the plan for ambiguity, contradictions, and missing requirements.
+7. Save the plan and offer the next execution mode.
 
 ## Output Artifact
 

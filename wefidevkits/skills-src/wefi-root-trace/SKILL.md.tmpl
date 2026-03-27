@@ -39,6 +39,16 @@ Do not propose or implement fixes until the failure has been investigated and a 
 - In multi-step systems, inspect each boundary instead of jumping straight to the end symptom.
 - If a fix attempt fails, return to investigation instead of piling on more changes.
 
+For financial flows, explicitly inspect:
+
+- duplicate submit and retry paths
+- illegal state transitions
+- journal and ledger divergence
+- failed compensation or reversal paths
+- optimistic locking or version conflicts
+- signature, digest, or integrity check failures
+- reconciliation mismatches and limit-control bypasses
+
 ## Failure Signals
 
 Stop and reset the process if you catch yourself thinking:

@@ -73,6 +73,24 @@ wefidevkits/
 
 默认只记录用户明确表达的问题，例如“遇到问题”“报错”“需要关注”“issue”“bug”。
 
+## 金融级设计约束
+
+如果项目涉及资金、余额、结算、支付请求、限额、对账或监管留痕，不应只按普通业务系统标准设计。
+
+`wefidevkits` 现在内置一套金融级设计基线，覆盖：
+
+- 事务与原子性
+- 幂等与防重
+- 防篡改与数据完整性
+- 审计与全链路追踪
+- 资金安全控制
+
+详细基线见：
+
+`references/financial-grade-design.md`
+
+这些约束已经嵌入到 `wefi-scope`、`wefi-sequence`、`wefi-execute`、`wefi-root-trace`、`wefi-exit-check` 的流程要求里。对金融类任务，设计、计划、实现、排障、验收都必须显式检查这些项，而不是靠口头约定。
+
 ## 构建
 
 ```bash

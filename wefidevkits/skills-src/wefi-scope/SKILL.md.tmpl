@@ -38,6 +38,19 @@ Do not write implementation code, scaffold files, or start execution until the d
 - Note technical risks and unresolved decisions.
 - Describe testing expectations at a high level.
 
+## Financial-Grade Overlay
+
+When the design touches balances, transfers, settlement, payment requests, or regulated financial records, the approved design must also answer:
+
+- what commits atomically and what gets rolled back together
+- what reversal or compensation path exists
+- what idempotency key is used and where uniqueness is enforced
+- what transaction state machine exists and which transitions are legal
+- what signatures, digests, or optimistic locking guards protect integrity
+- what journal, audit, reconciliation, limits, and safety controls exist
+
+Do not approve a financial design that says "we can add audit or reconciliation later" or "retries probably will not happen".
+
 ## Output Artifact
 
 Write the approved design to:
