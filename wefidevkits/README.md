@@ -111,6 +111,96 @@ node scripts/set-commit-mode.mjs --project-dir /path/to/your/project --mode skil
 node scripts/set-commit-mode.mjs --project-dir /path/to/your/project --mode auto
 ```
 
+## 已安装后的更新方式
+
+更新不需要先卸载，直接重新构建并覆盖安装即可。
+
+### 1. 拉取最新代码
+
+```bash
+git pull
+cd wefidevkits
+npm run build
+```
+
+### 2. 如果之前是全局安装
+
+重新执行：
+
+```bash
+npm run install:claude:user
+```
+
+这会把最新生成的 skills 覆盖复制到：
+
+```text
+~/.claude/skills
+```
+
+通常重开一个 Claude Code 会话即可生效。
+
+### 3. 如果之前是项目级安装
+
+重新执行：
+
+```bash
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project
+```
+
+这会更新项目里的：
+
+- `.claude/skills`
+- `.claude/hooks`
+
+### 4. 关于已有 `.claude/settings.json` 的项目
+
+如果目标项目已经存在：
+
+```text
+.claude/settings.json
+```
+
+安装器不会直接覆盖它，而是更新：
+
+```text
+.claude/settings.wefidevkits.json
+```
+
+这时需要把该文件里的 hook 变更手动合并回项目自己的 `.claude/settings.json`。
+
+### 5. 关于配置保留
+
+项目内的：
+
+```text
+.claude/wefidevkits.json
+```
+
+默认会被保留，因此原有配置通常不会丢失，例如：
+
+- `gitCommit.mode`
+- `learning.enabled`
+- `learning.recordExplicitUserIssuesOnly`
+
+如果你在更新时显式传入：
+
+```bash
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode confirm-each
+```
+
+则会同步改写该项目的 git 提交策略。
+
+### 6. 一个实际注意点
+
+如果你曾经直接修改过已安装目录里的文件，例如项目中的：
+
+- `.claude/skills/...`
+- `.claude/hooks/...`
+
+那么重新安装时同名文件会被覆盖。
+
+要保留自定义修改，应修改 `wefidevkits` 源文件后重新构建，而不是长期直接修改安装产物。
+
 ## 打包为可分发插件
 
 ```bash
