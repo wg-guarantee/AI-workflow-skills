@@ -1,0 +1,14 @@
+{
+  "name": "wefidevkits",
+  "description": "Workflow-first Claude Code skills for intake, scoping, sequencing, execution, debugging, and completion checks.",
+  "version": "0.1.0",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "workflow",
+    "claude-code",
+    "planning",
+    "debugging",
+    "verification"
+  ]
+}

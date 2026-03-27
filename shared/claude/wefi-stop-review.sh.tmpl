@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+payload="$(cat)"
+
+extract_field() {
+  local field="$1"
+  PAYLOAD="$payload" FIELD_NAME="$field" node <<'EOF'
+const payload = process.env.PAYLOAD || '{}';
+const fieldName = process.env.FIELD_NAME;
+
+try {
+  const parsed = JSON.parse(payload);
+  const value = parsed[fieldName];
+  if (typeof value === 'string') {
+    process.stdout.write(value);
+  } else if (typeof value === 'boolean') {
+    process.stdout.write(value ? 'true' : 'false');
+  }
+} catch (error) {
+  process.exit(0);
+}
+EOF
+}
+
+stop_hook_active="$(extract_field stop_hook_active)"
+last_assistant_message="$(extract_field last_assistant_message)"
+
+if [ "${stop_hook_active:-false}" = "true" ]; then
+  exit 0
+fi
+
+if [ -z "${last_assistant_message:-}" ]; then
+  exit 0
+fi
+
+if MESSAGE_TEXT="$last_assistant_message" node <<'EOF'
+const message = (process.env.MESSAGE_TEXT || '').toLowerCase();
+
+const completionSignals = [
+  'done',
+  'complete',
+  'completed',
+  'finished',
+  'fixed',
+  'passes',
+  'passing',
+  'tests pass',
+  'ready to merge',
+  'ready for merge',
+  'ready to commit',
+  'committed',
+  'git commit'
+];
+
+const evidenceSignals = [
+  'verified',
+  'verification',
+  'tested',
+  'test output',
+  'approval',
+  'approved',
+  'user approved',
+  'with concerns',
+  'blocked',
+  'needs_context',
+  'done_with_concerns'
+];
+
+const hasCompletionSignal = completionSignals.some((token) => message.includes(token));
+const hasEvidenceSignal = evidenceSignals.some((token) => message.includes(token));
+
+process.exit(hasCompletionSignal && !hasEvidenceSignal ? 0 : 1);
+EOF
+then
+  cat <<'EOF'
+{
+  "continue": true,
+  "suppressOutput": true,
+  "systemMessage": "wefidevkits reminder: before ending on a success claim, route through wefi-exit-check. If a commit is implied, confirm wefi-commit-gate was satisfied."
+}
+EOF
+fi

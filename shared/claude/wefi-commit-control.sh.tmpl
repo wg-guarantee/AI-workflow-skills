@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+payload="$(cat)"
+project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+config_file="${project_dir}/.claude/wefidevkits.json"
+
+node_output="$(
+  PAYLOAD="$payload" CONFIG_FILE="$config_file" node <<'EOF'
+const fs = require('fs');
+
+const payloadRaw = process.env.PAYLOAD || '{}';
+const configFile = process.env.CONFIG_FILE;
+
+function normalizeMode(value) {
+  if (typeof value !== 'string') {
+    return 'confirm-each';
+  }
+
+  if (['confirm-each', 'skill-governed', 'auto'].includes(value)) {
+    return value;
+  }
+
+  return 'confirm-each';
+}
+
+function loadConfig(filePath) {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return normalizeMode(parsed?.gitCommit?.mode);
+  } catch (error) {
+    return 'confirm-each';
+  }
+}
+
+function extractCommand(payload) {
+  try {
+    const parsed = JSON.parse(payload);
+    return {
+      toolName: parsed.tool_name || '',
+      command: parsed.tool_input?.command || ''
+    };
+  } catch (error) {
+    return { toolName: '', command: '' };
+  }
+}
+
+const { toolName, command } = extractCommand(payloadRaw);
+const mode = loadConfig(configFile);
+
+if (toolName !== 'Bash') {
+  process.stdout.write(JSON.stringify({ allow: true, mode, reason: 'not-bash' }));
+  process.exit(0);
+}
+
+const normalizedCommand = command.toLowerCase();
+const isGitCommit = /\bgit\s+commit\b/.test(normalizedCommand);
+
+if (!isGitCommit) {
+  process.stdout.write(JSON.stringify({ allow: true, mode, reason: 'not-git-commit' }));
+  process.exit(0);
+}
+
+if (mode === 'auto' || mode === 'skill-governed') {
+  process.stdout.write(JSON.stringify({ allow: true, mode, reason: 'mode-allows' }));
+  process.exit(0);
+}
+
+const approvalByEnv = /\bwefi_commit_approved\s*=\s*1\b/i.test(command);
+
+if (approvalByEnv) {
+  process.stdout.write(JSON.stringify({ allow: true, mode, reason: 'explicit-approval-env' }));
+  process.exit(0);
+}
+
+process.stdout.write(
+  JSON.stringify({
+    allow: false,
+    mode,
+    reason:
+      "git commits require explicit confirmation in confirm-each mode. Summarize the commit, ask the user, and if approved rerun the commit prefixed with WEFI_COMMIT_APPROVED=1."
+  })
+);
+EOF
+)"
+
+allow="$(
+  NODE_OUTPUT="$node_output" node <<'EOF'
+const parsed = JSON.parse(process.env.NODE_OUTPUT || '{}');
+process.stdout.write(parsed.allow ? 'true' : 'false');
+EOF
+)"
+
+if [ "$allow" = "true" ]; then
+  exit 0
+fi
+
+reason="$(
+  NODE_OUTPUT="$node_output" node <<'EOF'
+const parsed = JSON.parse(process.env.NODE_OUTPUT || '{}');
+process.stdout.write(parsed.reason || 'Commit blocked by wefidevkits.');
+EOF
+)"
+
+escaped_reason="$(
+  REASON="$reason" node <<'EOF'
+process.stdout.write(JSON.stringify(process.env.REASON || ''));
+EOF
+)"
+
+cat <<EOF
+{
+  "continue": true,
+  "suppressOutput": true,
+  "systemMessage": ${escaped_reason},
+  "hookSpecificOutput": {
+    "hookEventName": "PreToolUse",
+    "permissionDecision": "deny",
+    "permissionDecisionReason": ${escaped_reason}
+  }
+}
+EOF

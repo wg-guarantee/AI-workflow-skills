@@ -1,0 +1,15 @@
+{
+  "name": "wefidevkits",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "node scripts/generate-skills.mjs",
+    "validate": "node scripts/validate-skills.mjs",
+    "build": "node scripts/generate-skills.mjs && node scripts/validate-skills.mjs",
+    "install:claude:user": "node scripts/install-claude.mjs --target user",
+    "install:claude:project": "node scripts/install-claude.mjs --target project",
+    "package:claude-plugin": "node scripts/package-claude-plugin.mjs",
+    "set:claude:commit-mode": "node scripts/set-commit-mode.mjs"
+  }
+}

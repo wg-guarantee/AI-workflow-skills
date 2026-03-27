@@ -1,0 +1,51 @@
+---
+name: wefi-scope
+description: Use when the user is exploring a new feature, behavior change, product idea, or implementation direction before code should be written.
+phase: discovery
+kind: phase
+supports_hosts: [claude, codex]
+strictness: rigid
+handoff_to: [wefi-sequence]
+allowed_tools: [Read, Bash, Write]
+---
+
+# Scope
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Turn a rough request into an approved design with clear scope, tradeoffs, and success criteria.
+
+## Gate
+
+Do not write implementation code, scaffold files, or start execution until the design has been presented and approved.
+
+## Flow
+
+1. Inspect the existing project context if a codebase already exists.
+2. Ask one clarifying question at a time.
+3. Surface hidden assumptions, constraints, and success criteria.
+4. Propose two or three approaches with tradeoffs and a recommendation.
+5. Present the design in digestible sections and get approval.
+6. Save the approved design to a project document.
+7. Hand off to `wefi-sequence`.
+
+## Scope Controls
+
+- Be explicit about scope boundaries.
+- Prefer a narrow, shippable slice over vague ambition.
+- Note technical risks and unresolved decisions.
+- Describe testing expectations at a high level.
+
+## Output Artifact
+
+Write the approved design to:
+
+`docs/wefidevkits/specs/YYYY-MM-DD-<topic>.md`
+
+## Exit Conditions
+
+- The user has approved the design.
+- The design has been written down.
+- The next step is `wefi-sequence`, not direct implementation.

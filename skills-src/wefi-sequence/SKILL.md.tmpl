@@ -1,0 +1,64 @@
+---
+name: wefi-sequence
+description: Use when requirements or a design have been approved and the work now needs a precise implementation plan before code changes begin.
+phase: planning
+kind: phase
+supports_hosts: [claude, codex]
+strictness: rigid
+requires: [wefi-scope]
+handoff_to: [wefi-execute, wefi-review-loop]
+allowed_tools: [Read, Bash, Write]
+---
+
+# Sequence
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Produce an implementation sequence that another agent can execute without inventing missing details.
+
+## Gate
+
+Do not begin code changes from this phase. This phase exists to reduce ambiguity before execution starts.
+
+## Planning Controls
+
+- Break work into small, ordered tasks.
+- Use exact file paths.
+- Include verification commands and expected outcomes.
+- Prefer test-first execution when practical.
+- Avoid placeholders like `TODO`, `TBD`, or "handle edge cases later".
+
+## Flow
+
+1. Review the approved design and confirm scope.
+2. Identify files to create or modify.
+3. Break work into bite-sized tasks.
+4. For each task, specify:
+   - files affected
+   - behavior to add or change
+   - tests to write or update
+   - commands to run
+   - expected verification result
+5. Scan the plan for ambiguity, contradictions, and missing requirements.
+6. Save the plan and offer the next execution mode.
+
+## Output Artifact
+
+Write the plan to:
+
+`docs/wefidevkits/plans/YYYY-MM-DD-<topic>.md`
+
+## Execution Routes
+
+After the plan is complete, route to one of:
+
+- `wefi-execute` for inline execution
+- `wefi-review-loop` when the host supports isolated subagents
+
+## Exit Conditions
+
+- The plan is saved.
+- Each task is executable without inventing missing details.
+- The user can choose an execution mode.

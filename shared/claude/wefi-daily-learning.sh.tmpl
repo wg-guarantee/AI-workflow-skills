@@ -1,0 +1,403 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+payload="$(cat)"
+project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+config_file="${project_dir}/.claude/wefidevkits.json"
+
+PAYLOAD="$payload" PROJECT_DIR="$project_dir" CONFIG_FILE="$config_file" node <<'EOF'
+const fs = require('fs');
+const path = require('path');
+
+const payloadRaw = process.env.PAYLOAD || '{}';
+const projectDir = process.env.PROJECT_DIR || process.cwd();
+const configFile = process.env.CONFIG_FILE || path.join(projectDir, '.claude', 'wefidevkits.json');
+
+function safeJsonParse(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    return null;
+  }
+}
+
+function loadConfig(filePath) {
+  const defaults = {
+    learning: {
+      enabled: true,
+      recordExplicitUserIssuesOnly: true,
+      dailyLogDir: '.claude/wefidevkits/daily',
+      stateDir: '.claude/wefidevkits/state'
+    }
+  };
+
+  const parsed = safeJsonParse(fs.existsSync(filePath) ? fs.readFileSync(filePath, 'utf8') : '{}') || {};
+  return {
+    learning: {
+      enabled: parsed.learning?.enabled !== false,
+      recordExplicitUserIssuesOnly: parsed.learning?.recordExplicitUserIssuesOnly !== false,
+      dailyLogDir: parsed.learning?.dailyLogDir || defaults.learning.dailyLogDir,
+      stateDir: parsed.learning?.stateDir || defaults.learning.stateDir
+    }
+  };
+}
+
+function normalizeRole(value) {
+  if (!value) {
+    return '';
+  }
+
+  const role = String(value).toLowerCase();
+  if (role.includes('user') || role.includes('human')) {
+    return 'user';
+  }
+  if (role.includes('assistant') || role.includes('claude') || role.includes('model')) {
+    return 'assistant';
+  }
+  return role;
+}
+
+function pushMessage(messages, role, text) {
+  if (!text || typeof text !== 'string') {
+    return;
+  }
+
+  const normalized = text.trim();
+  if (!normalized) {
+    return;
+  }
+
+  messages.push({
+    role: normalizeRole(role),
+    text: normalized
+  });
+}
+
+function walkTranscript(value, messages, inheritedRole = '') {
+  if (value == null) {
+    return;
+  }
+
+  if (typeof value === 'string') {
+    pushMessage(messages, inheritedRole, value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      walkTranscript(item, messages, inheritedRole);
+    }
+    return;
+  }
+
+  if (typeof value !== 'object') {
+    return;
+  }
+
+  const currentRole = normalizeRole(value.role || value.sender || value.author || inheritedRole);
+
+  if (typeof value.content === 'string') {
+    pushMessage(messages, currentRole, value.content);
+  }
+
+  if (typeof value.text === 'string') {
+    pushMessage(messages, currentRole, value.text);
+  }
+
+  if (typeof value.message === 'string') {
+    pushMessage(messages, currentRole, value.message);
+  }
+
+  if (Array.isArray(value.content)) {
+    for (const item of value.content) {
+      if (typeof item === 'string') {
+        pushMessage(messages, currentRole, item);
+      } else if (item && typeof item === 'object') {
+        if (typeof item.text === 'string') {
+          pushMessage(messages, currentRole, item.text);
+        }
+        if (typeof item.content === 'string') {
+          pushMessage(messages, currentRole, item.content);
+        }
+        walkTranscript(item, messages, currentRole);
+      }
+    }
+  }
+
+  for (const entry of Object.values(value)) {
+    if (entry && typeof entry === 'object') {
+      walkTranscript(entry, messages, currentRole);
+    }
+  }
+}
+
+function dedupe(items) {
+  const seen = new Set();
+  const output = [];
+
+  for (const item of items) {
+    const normalized = item.replace(/\s+/g, ' ').trim();
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+    seen.add(normalized);
+    output.push(normalized);
+  }
+
+  return output;
+}
+
+function takeTopMatches(messages, matcher, maxItems = 3) {
+  const matches = [];
+  for (const message of messages) {
+    if (matcher(message)) {
+      matches.push(message.text);
+      if (matches.length >= maxItems) {
+        break;
+      }
+    }
+  }
+  return dedupe(matches).slice(0, maxItems);
+}
+
+const issueKeywords = [
+  'problem',
+  'issue',
+  'error',
+  'errors',
+  'fail',
+  'failed',
+  'failure',
+  'failing',
+  'broken',
+  'bug',
+  'cannot',
+  "can't",
+  'unable',
+  'stuck',
+  'blocked',
+  'regression',
+  '问题',
+  '报错',
+  '错误',
+  '失败',
+  '不行',
+  '无法',
+  '卡住',
+  '阻塞',
+  '异常'
+];
+
+const explicitUserIssueMarkers = [
+  '问题',
+  '有问题',
+  '遇到问题',
+  '碰到问题',
+  '报错',
+  '错误',
+  '失败',
+  '失败了',
+  '卡住',
+  '阻塞',
+  '无法',
+  '不行',
+  '异常',
+  '需要关注',
+  '值得关注',
+  '需要跟进',
+  '待跟进',
+  '记录一下',
+  '记一下',
+  '请记录',
+  'please record',
+  'record this',
+  'problem',
+  'issue',
+  'bug',
+  'error',
+  'failed',
+  'failure',
+  'blocked',
+  'stuck',
+  'cannot',
+  "can't",
+  'needs attention',
+  'needs follow up',
+  'follow up',
+  'follow-up'
+];
+
+const concernKeywords = [
+  'concern',
+  'concerns',
+  'risk',
+  'risks',
+  'follow up',
+  'follow-up',
+  'watch',
+  'attention',
+  'blocked',
+  'needs_context',
+  'done_with_concerns',
+  'residual risk',
+  'verification gap',
+  'todo',
+  '注意',
+  '关注',
+  '风险',
+  '后续',
+  '待跟进',
+  '待确认',
+  '隐患'
+];
+
+function containsKeyword(text, keywords) {
+  const lower = text.toLowerCase();
+  return keywords.some((keyword) => lower.includes(keyword));
+}
+
+function isExplicitUserIssue(text, explicitOnly) {
+  if (!explicitOnly) {
+    return containsKeyword(text, issueKeywords);
+  }
+
+  return containsKeyword(text, explicitUserIssueMarkers);
+}
+
+function buildSuggestions(issues, concerns) {
+  const joined = `${issues.join('\n')}\n${concerns.join('\n')}`.toLowerCase();
+  const suggestions = [];
+
+  if (/commit|git commit|提交/.test(joined)) {
+    suggestions.push('Review whether git commit policy is too strict or too loose for this project.');
+  }
+
+  if (/test|verify|verification|pass|通过|验证|测试/.test(joined)) {
+    suggestions.push('Strengthen project-specific verification guidance so completion claims are easier to validate.');
+  }
+
+  if (/scope|requirement|ambiguous|missing context|需求|范围|上下文/.test(joined)) {
+    suggestions.push('Improve scoping and sequencing artifacts to reduce ambiguity before execution.');
+  }
+
+  if (/bug|error|trace|debug|报错|错误|调试/.test(joined)) {
+    suggestions.push('Review debugging guidance and root-cause tracing prompts for repeated failure patterns.');
+  }
+
+  if (suggestions.length === 0 && (issues.length > 0 || concerns.length > 0)) {
+    suggestions.push('Review today’s observations and update the workflow wording where repeated friction appears.');
+  }
+
+  return dedupe(suggestions).slice(0, 3);
+}
+
+const payload = safeJsonParse(payloadRaw) || {};
+const config = loadConfig(configFile);
+
+if (!config.learning.enabled) {
+  process.exit(0);
+}
+
+const sessionId = payload.session_id || 'unknown-session';
+const transcriptPath = payload.transcript_path;
+const cwd = payload.cwd || projectDir;
+
+if (!transcriptPath || !fs.existsSync(transcriptPath)) {
+  process.exit(0);
+}
+
+const stateDir = path.resolve(projectDir, config.learning.stateDir);
+const dailyDir = path.resolve(projectDir, config.learning.dailyLogDir);
+fs.mkdirSync(stateDir, { recursive: true });
+fs.mkdirSync(dailyDir, { recursive: true });
+
+const markerFile = path.join(stateDir, `${sessionId}.daily-learning.logged`);
+if (fs.existsSync(markerFile)) {
+  process.exit(0);
+}
+
+const transcriptRaw = fs.readFileSync(transcriptPath, 'utf8');
+const transcriptJson = safeJsonParse(transcriptRaw);
+const messages = [];
+
+if (transcriptJson) {
+  walkTranscript(transcriptJson, messages);
+}
+
+if (messages.length === 0) {
+  for (const line of transcriptRaw.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed) {
+      messages.push({ role: '', text: trimmed });
+    }
+  }
+}
+
+const userIssues = takeTopMatches(
+  messages,
+  (message) =>
+    (message.role === 'user' || message.role === '') &&
+    isExplicitUserIssue(message.text, config.learning.recordExplicitUserIssuesOnly)
+);
+
+const assistantConcerns = takeTopMatches(
+  messages,
+  (message) => (message.role === 'assistant' || message.role === '') && containsKeyword(message.text, concernKeywords)
+);
+
+if (userIssues.length === 0 && assistantConcerns.length === 0) {
+  fs.writeFileSync(markerFile, `${new Date().toISOString()}\n`);
+  process.exit(0);
+}
+
+const suggestions = buildSuggestions(userIssues, assistantConcerns);
+const now = new Date();
+const day = now.toISOString().slice(0, 10);
+const timestamp = now.toISOString();
+
+const record = {
+  timestamp,
+  day,
+  sessionId,
+  cwd,
+  userIssues,
+  assistantConcerns,
+  suggestions
+};
+
+const jsonlFile = path.join(dailyDir, `${day}.jsonl`);
+fs.appendFileSync(jsonlFile, `${JSON.stringify(record)}\n`);
+
+const markdownFile = path.join(dailyDir, `${day}.md`);
+const markdownLines = [];
+markdownLines.push(`## ${timestamp}`);
+markdownLines.push('');
+markdownLines.push(`- session: \`${sessionId}\``);
+markdownLines.push(`- cwd: \`${cwd}\``);
+
+if (userIssues.length > 0) {
+  markdownLines.push('- user issues:');
+  for (const issue of userIssues) {
+    markdownLines.push(`  - ${issue}`);
+  }
+}
+
+if (assistantConcerns.length > 0) {
+  markdownLines.push('- follow-up concerns:');
+  for (const concern of assistantConcerns) {
+    markdownLines.push(`  - ${concern}`);
+  }
+}
+
+if (suggestions.length > 0) {
+  markdownLines.push('- optimization suggestions:');
+  for (const suggestion of suggestions) {
+    markdownLines.push(`  - ${suggestion}`);
+  }
+}
+
+markdownLines.push('');
+fs.appendFileSync(markdownFile, `${markdownLines.join('\n')}\n`);
+fs.writeFileSync(markerFile, `${timestamp}\n`);
+EOF

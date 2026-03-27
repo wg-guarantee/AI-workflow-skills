@@ -1,0 +1,72 @@
+---
+name: wefi-commit-gate
+description: Use when changes are ready to be committed and the user has not already explicitly approved creating a git commit in the current workflow.
+phase: verification
+kind: guardrail
+supports_hosts: [claude, codex]
+strictness: rigid
+allowed_tools: [Read, Bash]
+---
+
+# Commit Gate
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Apply the project's configured git commit policy. The user should know what is about to be committed and explicitly approve the commit when the policy requires it.
+
+## Project Policy
+
+Read `.claude/wefidevkits.json` when it exists. The `gitCommit.mode` field controls commit behavior:
+
+- `confirm-each`: every `git commit` requires explicit approval. After approval, rerun the commit prefixed with `WEFI_COMMIT_APPROVED=1`.
+- `skill-governed`: follow the workflow policy in this skill without a hard hook block.
+- `auto`: commits may proceed without additional confirmation.
+
+## Gate
+
+In `confirm-each` mode, do not create a git commit unless one of these is true:
+
+1. The user explicitly asked for a commit.
+2. The user explicitly approved committing after seeing the proposed change summary.
+3. The commit command is rerun with `WEFI_COMMIT_APPROVED=1` after that approval.
+
+In `skill-governed` mode, you may also proceed when the surrounding task clearly delegated autonomous commits as part of the workflow.
+
+In `auto` mode, you should still summarize the commit plan when useful, but you do not need an extra confirmation step.
+
+## Flow
+
+1. Inspect the staged or unstaged changes that are candidates for the commit.
+2. Summarize what will be committed in plain language:
+   - main behavior changes
+   - important files touched
+   - verification status
+   - proposed commit message
+3. If the mode is `confirm-each`, ask the user for approval before running `git commit`.
+4. If the user approves in `confirm-each` mode, create the commit by rerunning the command prefixed with `WEFI_COMMIT_APPROVED=1`.
+5. If the user does not approve, do not commit.
+
+## Approval Packet
+
+When asking for confirmation, include:
+
+- what changed
+- what was verified
+- the exact proposed commit message
+
+## Skip Conditions
+
+You do not need to ask again when:
+
+- the user already said to commit after the next change
+- the project mode is `auto`
+- the project mode is `skill-governed` and the user explicitly requested autonomous execution including commits
+- a higher-priority user instruction says to commit without further confirmation
+
+## Exit Conditions
+
+- The user approved the commit, or
+- The workflow clearly recorded prior commit authority, or
+- No commit was created.

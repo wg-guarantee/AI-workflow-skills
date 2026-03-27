@@ -1,0 +1,50 @@
+---
+name: wefi-intake
+description: Use when starting a conversation or before responding to a development request whenever there is any chance a workflow skill should guide the next step.
+phase: root
+kind: root
+supports_hosts: [claude, codex]
+strictness: rigid
+handoff_to: [wefi-scope, wefi-sequence, wefi-commit-gate, wefi-exit-check]
+allowed_tools: [Read, Bash]
+---
+
+# Intake
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Make skill selection the default behavior. Do not improvise a workflow when a relevant skill already exists.
+
+## Gate
+
+If there is even a small chance that a workflow skill applies, use the skill before taking substantive action.
+
+## Routing Order
+
+1. User instructions
+2. Root and process skills
+3. Implementation work
+4. Completion claims
+
+## Routing Rules
+
+- New feature, behavior change, or product idea -> `wefi-scope`
+- Approved requirements that need execution detail -> `wefi-sequence`
+- Changes are ready and a commit may be the next step -> `wefi-commit-gate`
+- Any statement that work is complete, fixed, or passing -> `wefi-exit-check`
+
+## Failure Signals
+
+Stop and route through a skill if you catch yourself thinking:
+
+- "This is simple enough to skip the workflow."
+- "I'll ask a clarifying question first and check skills later."
+- "I already know what this skill says."
+- "I can probably say it's done without rerunning checks."
+
+## Exit Conditions
+
+- The next workflow skill has been chosen or explicitly ruled out.
+- The user has been guided into the correct phase instead of receiving ad hoc implementation.

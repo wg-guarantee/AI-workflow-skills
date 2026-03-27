@@ -1,0 +1,52 @@
+---
+name: wefi-exit-check
+description: Use when about to claim work is complete, fixed, passing, or ready to merge so evidence is checked before any success claim is made.
+phase: verification
+kind: guardrail
+supports_hosts: [claude, codex]
+strictness: rigid
+allowed_tools: [Read, Bash]
+---
+
+# Exit Check
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Prevent unverified completion claims.
+
+## Gate
+
+Do not say work is done, fixed, passing, or ready until fresh verification evidence has been gathered in the current workflow.
+
+## Flow
+
+1. Identify the command or check that proves the claim.
+2. Run the full verification command.
+3. Read the output carefully.
+4. Compare the output to the claim.
+5. Only then report:
+   - `DONE` if the evidence supports the claim
+   - `DONE_WITH_CONCERNS` if it mostly works but risks remain
+   - `BLOCKED` or `NEEDS_CONTEXT` if the claim cannot be validated
+
+## Applies Before
+
+- saying tests pass
+- saying a bug is fixed
+- marking a task complete
+- opening or merging a PR
+- moving to the next task based on assumed success
+
+## Failure Signals
+
+- "This should work now."
+- "I'm pretty sure it's fixed."
+- "The code looks correct."
+- "The agent said it passed."
+
+## Exit Conditions
+
+- A concrete claim has matching fresh evidence.
+- The reported status matches the real verification result.

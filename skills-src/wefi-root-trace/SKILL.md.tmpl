@@ -1,0 +1,59 @@
+---
+name: wefi-root-trace
+description: Use when a bug, test failure, regression, or unexpected behavior appears and root cause analysis should happen before proposing fixes.
+phase: debugging
+kind: guardrail
+supports_hosts: [claude, codex]
+strictness: rigid
+handoff_to: [wefi-exit-check]
+allowed_tools: [Read, Bash, Write, Edit]
+---
+
+# Root Trace
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Find and fix the actual root cause instead of stacking guesses on top of symptoms.
+
+## Gate
+
+Do not propose or implement fixes until the failure has been investigated and a specific root-cause hypothesis exists.
+
+## Flow
+
+1. Reproduce the problem clearly and capture the exact symptom.
+2. Read the error output, logs, stack traces, and recent changes carefully.
+3. Trace the failing data flow or state transition until you can explain where it first becomes wrong.
+4. Compare the broken path with a known good path, if one exists.
+5. Form one concrete hypothesis about the root cause.
+6. Test that hypothesis with the smallest possible change or probe.
+7. Only after the hypothesis is supported should you implement a fix.
+8. Route any success claim through `wefi-exit-check`.
+
+## Investigation Controls
+
+- Prefer evidence over intuition.
+- Isolate one variable at a time.
+- In multi-step systems, inspect each boundary instead of jumping straight to the end symptom.
+- If a fix attempt fails, return to investigation instead of piling on more changes.
+
+## Failure Signals
+
+Stop and reset the process if you catch yourself thinking:
+
+- "I'll just try one quick fix."
+- "This is probably the issue."
+- "I'll make two or three changes and see what happens."
+- "The logs are good enough; I don't need a real reproduction."
+
+## Escalation Threshold
+
+If you have already tried multiple fixes and each one reveals a new problem elsewhere, treat that as a sign of a deeper design issue and escalate instead of continuing to thrash.
+
+## Exit Conditions
+
+- A root-cause hypothesis was stated and tested.
+- The final fix addresses the source of the issue, not just the visible symptom.
+- Verification evidence exists for the claimed result.

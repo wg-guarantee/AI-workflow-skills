@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+SKILL_FILE="${PROJECT_DIR}/.claude/skills/{{INTAKE_SKILL_NAME}}/SKILL.md"
+
+escape_for_json() {
+  local s="$1"
+  s="${s//\\/\\\\}"
+  s="${s//\"/\\\"}"
+  s="${s//$'\n'/\\n}"
+  s="${s//$'\r'/\\r}"
+  s="${s//$'\t'/\\t}"
+  printf '%s' "$s"
+}
+
+if [ -f "$SKILL_FILE" ]; then
+  intake_content=$(cat "$SKILL_FILE")
+else
+  intake_content="Skill file not found at ${SKILL_FILE}. Use /{{INTAKE_SKILL_NAME}} before substantive development work in this project."
+fi
+
+intake_escaped=$(escape_for_json "$intake_content")
+session_context="<WEFI_WORKFLOW>\nYou have wefidevkits installed for this project.\n\nBefore the first substantive response, load or follow the {{INTAKE_SKILL_NAME}} skill and route work through the workflow skills it names.\n\nReference skill content:\n\n${intake_escaped}\n</WEFI_WORKFLOW>"
+
+printf '{\n  "hookSpecificOutput": {\n    "hookEventName": "SessionStart",\n    "additionalContext": "%s"\n  }\n}\n' "$session_context"

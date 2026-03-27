@@ -1,0 +1,56 @@
+---
+name: wefi-execute
+description: Use when an approved implementation plan exists and the work should now be executed step by step in the current session.
+phase: implementation
+kind: phase
+supports_hosts: [claude, codex]
+strictness: rigid
+requires: [wefi-sequence]
+handoff_to: [wefi-commit-gate, wefi-exit-check]
+allowed_tools: [Read, Bash, Write, Edit]
+---
+
+# Execute
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Execute an approved implementation plan without inventing new scope mid-flight.
+
+## Gate
+
+The plan is the contract. Follow it in order, raise gaps explicitly, and do not silently rewrite the requirements while implementing.
+
+## Flow
+
+1. Read the plan from top to bottom before making changes.
+2. Review the plan critically for ambiguity, blockers, or contradictions.
+3. If critical gaps exist, stop and report them before implementation begins.
+4. Track tasks explicitly as `pending`, `in_progress`, and `completed`.
+5. Execute each task in order unless the plan itself states otherwise.
+6. Run every verification step specified by the plan.
+7. Before creating a commit, route through `wefi-commit-gate` unless commit authority is already explicit.
+8. Before claiming a task or the full plan is complete, route through `wefi-exit-check`.
+
+## Execution Controls
+
+- Use the smallest change that satisfies the current task.
+- Follow existing project patterns instead of introducing unrelated restructuring.
+- If a task reveals a real plan defect, stop and escalate instead of guessing.
+- If multiple failures suggest the plan is unsound, report that directly.
+
+## Stop Conditions
+
+Stop execution and escalate when:
+
+- required context is missing
+- a verification step repeatedly fails
+- the plan contradicts the existing codebase in a material way
+- completing the task requires design decisions that were never approved
+
+## Exit Conditions
+
+- Every plan task has been either completed with evidence or escalated with a concrete blocker.
+- No commit has been created without explicit user approval or prior delegated commit authority.
+- No completion claim has been made without fresh verification.

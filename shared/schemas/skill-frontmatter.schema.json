@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "wefidevkits skill frontmatter",
+  "type": "object",
+  "required": [
+    "name",
+    "description",
+    "phase",
+    "kind",
+    "supports_hosts",
+    "strictness"
+  ],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "root",
+        "discovery",
+        "planning",
+        "implementation",
+        "verification",
+        "debugging"
+      ]
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "root",
+        "phase",
+        "guardrail"
+      ]
+    },
+    "strictness": {
+      "type": "string",
+      "enum": [
+        "rigid",
+        "flexible"
+      ]
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "default": []
+    },
+    "handoff_to": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "default": []
+    },
+    "supports_hosts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "claude",
+          "codex"
+        ]
+      }
+    },
+    "allowed_tools": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": []
+    }
+  },
+  "additionalProperties": false
+}
+

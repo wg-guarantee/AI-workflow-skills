@@ -1,0 +1,17 @@
+{
+  "claude": {
+    "displayName": "Claude",
+    "hasSessionBootstrap": true,
+    "hasNativeSkillInvocation": true,
+    "hasSubagents": true,
+    "toolMapKey": "claude"
+  },
+  "codex": {
+    "displayName": "Codex",
+    "hasSessionBootstrap": false,
+    "hasNativeSkillInvocation": true,
+    "hasSubagents": true,
+    "toolMapKey": "codex"
+  }
+}
+

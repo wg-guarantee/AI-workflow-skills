@@ -1,0 +1,68 @@
+---
+name: wefi-review-loop
+description: Use when an approved implementation plan exists, tasks can be executed in isolated chunks, and the host supports subagents for implementation and review loops.
+phase: implementation
+kind: phase
+supports_hosts: [claude, codex]
+strictness: rigid
+requires: [wefi-sequence]
+handoff_to: [wefi-commit-gate, wefi-exit-check]
+allowed_tools: [Read, Bash, Write, Edit]
+---
+
+# Review Loop
+
+{{SHARED_PRELUDE}}
+
+## Mission
+
+Execute an approved plan through isolated subagents so implementation, spec checking, and quality review happen with clean context boundaries.
+
+## Gate
+
+Do not dispatch subagents until the task text is stable, scoped, and traceable to an approved sequence.
+
+## Loop Flow
+
+For each task:
+
+1. Dispatch an implementer subagent with the full task text and local context.
+2. Require the implementer to report status, changed files, tests run, and concerns.
+3. Dispatch a spec reviewer to verify that the implementation matches the requested task exactly.
+4. If spec issues exist, send the task back to the implementer and repeat the spec review.
+5. Dispatch a quality reviewer only after spec compliance is clear.
+6. If quality issues exist, send the task back to the implementer and repeat the quality review.
+7. Before any commit created from the task, route through `wefi-commit-gate` unless commit authority is already explicit.
+8. Only then mark the task complete and move to the next task.
+
+## Controller Controls
+
+- Provide the task text directly to subagents; do not make them rediscover it from the plan file.
+- Keep one implementation task active at a time unless the plan explicitly allows safe parallelism.
+- Do not treat implementer self-review as a replacement for independent review.
+- Preserve the task order and plan scope unless the user explicitly approves a change.
+- Do not allow silent commits by an implementer or controller when the user has not yet approved committing.
+
+## Review Assets
+
+Use these bundled prompt templates:
+
+- `implementer-prompt.md`
+- `spec-reviewer-prompt.md`
+- `quality-reviewer-prompt.md`
+
+## Stop Conditions
+
+Stop and escalate when:
+
+- the task is too ambiguous to dispatch responsibly
+- subagents repeatedly fail for the same reason
+- the plan no longer matches the real codebase
+- review loops reveal the design itself is wrong, not just the implementation
+
+## Exit Conditions
+
+- Every completed task has passed implementation, spec review, and quality review.
+- No task is marked complete based only on an implementer report.
+- Any commit created during task execution was explicitly approved or covered by prior delegated authority.
+- Final completion claims still route through `wefi-exit-check`.
