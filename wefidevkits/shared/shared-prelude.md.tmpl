@@ -4,6 +4,12 @@
 - Report workflow status with exactly one of: `DONE`, `DONE_WITH_CONCERNS`, `BLOCKED`, `NEEDS_CONTEXT`.
 - Escalate instead of guessing when requirements are missing, correctness is uncertain, or scope exceeds what can be verified.
 - Process skills come before implementation skills.
-- When the task touches money movement, balances, settlement, limits, reconciliation, or regulated audit trails, apply financial-grade controls instead of convenience shortcuts.
+- Classify the task before choosing controls:
+  - `Tier 0`: ordinary work with no sensitive write path
+  - `Tier 1`: important business or state-changing work without financial exposure
+  - `Tier 2`: financial-sensitive work that affects billing, limits, payment state, or reconciliation inputs
+  - `Tier 3`: money-moving or ledger-affecting work
+- Apply only the controls that match the highest affected tier.
+- If only one subflow is financially sensitive, isolate that subflow and apply the higher tier there instead of upgrading the whole task.
 
 {{HOST_TOOL_MAPPING}}

@@ -21,15 +21,27 @@ Turn a rough request into an approved design with clear scope, tradeoffs, and su
 
 Do not write implementation code, scaffold files, or start execution until the design has been presented and approved.
 
+## Task Classification
+
+Classify the task up front and record it in the design:
+
+- `Tier 0`: ordinary task with no sensitive write path
+- `Tier 1`: important business logic, workflow state, permissions, or externally visible behavior
+- `Tier 2`: financial-sensitive logic such as billing, limits, payment-state transitions, or reconciliation inputs
+- `Tier 3`: direct money movement, balances, settlement, ledger, or repayment/disbursement writes
+
+Use the highest affected tier for the specific subflow being designed. Do not escalate the whole task to Tier 3 if only one bounded subflow needs it.
+
 ## Flow
 
 1. Inspect the existing project context if a codebase already exists.
-2. Ask one clarifying question at a time.
-3. Surface hidden assumptions, constraints, and success criteria.
-4. Propose two or three approaches with tradeoffs and a recommendation.
-5. Present the design in digestible sections and get approval.
-6. Save the approved design to a project document.
-7. Hand off to `wefi-sequence`.
+2. Classify the task or each affected subflow into Tier 0/1/2/3.
+3. Ask one clarifying question at a time.
+4. Surface hidden assumptions, constraints, and success criteria.
+5. Propose two or three approaches with tradeoffs and a recommendation.
+6. Present the design in digestible sections and get approval.
+7. Save the approved design to a project document.
+8. Hand off to `wefi-sequence`.
 
 ## Scope Controls
 
@@ -38,9 +50,24 @@ Do not write implementation code, scaffold files, or start execution until the d
 - Note technical risks and unresolved decisions.
 - Describe testing expectations at a high level.
 
-## Financial-Grade Overlay
+## Tiered Control Overlay
 
-When the design touches balances, transfers, settlement, payment requests, or regulated financial records, the approved design must also answer:
+For every design, match the control depth to the tier:
+
+- `Tier 0`
+  - keep the design lean
+  - focus on scope, behavior, and basic verification
+- `Tier 1`
+  - define state boundaries, permission assumptions, and data consistency expectations
+  - call out regression risks and rollback approach
+- `Tier 2`
+  - define state transitions and rejection conditions
+  - define idempotent write expectations where retries are possible
+  - define audit fields, limit or risk effects, and abnormal paths
+- `Tier 3`
+  - answer all Tier 2 items, plus the full financial-grade questions below
+
+For Tier 3 subflows, the approved design must also answer:
 
 - what commits atomically and what gets rolled back together
 - what reversal or compensation path exists
@@ -49,7 +76,7 @@ When the design touches balances, transfers, settlement, payment requests, or re
 - what signatures, digests, or optimistic locking guards protect integrity
 - what journal, audit, reconciliation, limits, and safety controls exist
 
-Do not approve a financial design that says "we can add audit or reconciliation later" or "retries probably will not happen".
+Do not approve a Tier 3 design that says "we can add audit or reconciliation later" or "retries probably will not happen".
 
 ## Output Artifact
 
@@ -61,4 +88,5 @@ Write the approved design to:
 
 - The user has approved the design.
 - The design has been written down.
+- The design records the control tier for the whole task or each sensitive subflow.
 - The next step is `wefi-sequence`, not direct implementation.

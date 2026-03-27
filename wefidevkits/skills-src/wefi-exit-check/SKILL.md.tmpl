@@ -39,7 +39,14 @@ Do not say work is done, fixed, passing, or ready until fresh verification evide
 - opening or merging a PR
 - moving to the next task based on assumed success
 
-For financial or balance-affecting work, also apply before saying:
+For Tier 2 work, also apply before saying:
+
+- a state transition is safe
+- retries are handled
+- auditability is covered
+- limit or risk checks behave correctly
+
+For Tier 3 work, also apply before saying:
 
 - a transaction flow is safe
 - retries are handled
@@ -57,4 +64,5 @@ For financial or balance-affecting work, also apply before saying:
 
 - A concrete claim has matching fresh evidence.
 - The reported status matches the real verification result.
-- For financial work, evidence also covers transactional safety, idempotency, audit trail integrity, and the configured safety controls.
+- For Tier 2 work, evidence also covers state guards, retry behavior, audit evidence, and the configured risk controls.
+- For Tier 3 work, evidence also covers transactional safety, idempotency, audit trail integrity, reconciliation, and the configured safety controls.

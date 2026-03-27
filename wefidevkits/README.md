@@ -264,6 +264,17 @@ wefidevkits/
 
 默认只记录用户明确表达的问题，例如“遇到问题”“报错”“需要关注”“issue”“bug”。
 
+## 分层控制模型
+
+`wefidevkits` 不会默认把所有任务都按金融级标准处理，而是先分类，再按层级施加控制：
+
+- `Tier 0`：普通任务，无敏感写路径
+- `Tier 1`：重要业务任务，涉及状态、权限、外部可见行为或数据一致性
+- `Tier 2`：金融敏感任务，涉及计费、限额、支付状态、对账输入、风控判断
+- `Tier 3`：资金账务任务，直接影响余额、账本、结算、放款、还款、退款等资金结果
+
+如果只有某个子流程涉及 Tier 2 或 Tier 3，skills 会要求只对该子流程提升控制，不把整个任务一刀切升级。
+
 ## 金融级设计约束
 
 如果项目涉及资金、余额、结算、支付请求、限额、对账或监管留痕，不应只按普通业务系统标准设计。
@@ -280,7 +291,12 @@ wefidevkits/
 
 `references/financial-grade-design.md`
 
-这些约束已经嵌入到 `wefi-scope`、`wefi-sequence`、`wefi-execute`、`wefi-root-trace`、`wefi-exit-check` 的流程要求里。对金融类任务，设计、计划、实现、排障、验收都必须显式检查这些项，而不是靠口头约定。
+这些约束已经嵌入到 `wefi-scope`、`wefi-sequence`、`wefi-execute`、`wefi-review-loop`、`wefi-root-trace`、`wefi-exit-check` 的流程要求里，但只会在 Tier 2 或 Tier 3 任务上提升控制强度。
+
+- Tier 0：普通功能与回归验证
+- Tier 1：状态、权限、数据一致性与回归验证
+- Tier 2：状态机、重试、副作用、审计、风控/限额验证
+- Tier 3：事务、幂等、防篡改、审计、对账、补偿、资金安全验证
 
 ## 构建
 

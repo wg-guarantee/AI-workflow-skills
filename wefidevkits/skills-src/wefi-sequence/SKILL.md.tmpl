@@ -22,6 +22,16 @@ Produce an implementation sequence that another agent can execute without invent
 
 Do not begin code changes from this phase. This phase exists to reduce ambiguity before execution starts.
 
+## Control Tier Declaration
+
+At the top of the plan, declare:
+
+- overall task tier
+- any higher-tier subflows that need stricter handling
+- which tasks inherit which tier
+
+If only one task touches a Tier 2 or Tier 3 path, keep the rest of the plan at its lower tier instead of over-controlling everything.
+
 ## Planning Controls
 
 - Break work into small, ordered tasks.
@@ -30,10 +40,20 @@ Do not begin code changes from this phase. This phase exists to reduce ambiguity
 - Prefer test-first execution when practical.
 - Avoid placeholders like `TODO`, `TBD`, or "handle edge cases later".
 
-## Financial-Grade Overlay
+## Tiered Planning Overlay
 
-When the plan affects financial state or money movement, the plan must translate the approved safeguards into explicit tasks for:
+Match plan detail to the assigned tier:
 
+- `Tier 0`
+  - ordinary implementation and verification tasks are enough
+- `Tier 1`
+  - include explicit state, permissions, migration, and regression checks
+- `Tier 2`
+  - include explicit tasks for state-machine guards, retry behavior, audit fields, and risk or limit impacts
+- `Tier 3`
+  - translate the approved safeguards into explicit tasks for the full list below
+
+For Tier 3 tasks, the plan must translate safeguards into explicit tasks for:
 - transaction boundaries and rollback behavior
 - reversal or compensation handlers
 - idempotency key propagation and database unique constraints
@@ -46,17 +66,19 @@ When the plan affects financial state or money movement, the plan must translate
 ## Flow
 
 1. Review the approved design and confirm scope.
-2. Identify files to create or modify.
-3. Break work into bite-sized tasks.
+2. Record the applicable control tier for the plan and any higher-tier subflows.
+3. Identify files to create or modify.
+4. Break work into bite-sized tasks.
 4. For each task, specify:
    - files affected
    - behavior to add or change
    - tests to write or update
    - commands to run
    - expected verification result
-5. If the domain is financial, add the invariant each task must preserve.
-6. Scan the plan for ambiguity, contradictions, and missing requirements.
-7. Save the plan and offer the next execution mode.
+5. Add the control tier each task must satisfy when it differs from the plan default.
+6. If the task is Tier 2 or Tier 3, add the invariant each task must preserve.
+7. Scan the plan for ambiguity, contradictions, and missing requirements.
+8. Save the plan and offer the next execution mode.
 
 ## Output Artifact
 
@@ -75,4 +97,5 @@ After the plan is complete, route to one of:
 
 - The plan is saved.
 - Each task is executable without inventing missing details.
+- The plan records which tasks are Tier 0/1/2/3.
 - The user can choose an execution mode.

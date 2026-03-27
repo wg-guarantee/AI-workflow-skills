@@ -42,6 +42,8 @@ For each task:
 - Do not treat implementer self-review as a replacement for independent review.
 - Preserve the task order and plan scope unless the user explicitly approves a change.
 - Do not allow silent commits by an implementer or controller when the user has not yet approved committing.
+- Preserve the task tier on handoff. If one task is Tier 3, pass that tier and its invariants explicitly instead of assuming the reviewer will infer them.
+- Do not upgrade the whole review loop to Tier 3 unless the current task itself requires it.
 
 ## Review Assets
 

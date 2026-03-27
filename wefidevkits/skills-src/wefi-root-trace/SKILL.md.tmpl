@@ -39,7 +39,14 @@ Do not propose or implement fixes until the failure has been investigated and a 
 - In multi-step systems, inspect each boundary instead of jumping straight to the end symptom.
 - If a fix attempt fails, return to investigation instead of piling on more changes.
 
-For financial flows, explicitly inspect:
+For Tier 2 flows, explicitly inspect:
+
+- retry paths and duplicate side effects
+- illegal state transitions
+- audit-field omission
+- limit-control or risk-control bypasses
+
+For Tier 3 flows, explicitly inspect:
 
 - duplicate submit and retry paths
 - illegal state transitions

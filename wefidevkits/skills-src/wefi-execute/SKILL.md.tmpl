@@ -39,7 +39,12 @@ The plan is the contract. Follow it in order, raise gaps explicitly, and do not 
 - Follow existing project patterns instead of introducing unrelated restructuring.
 - If a task reveals a real plan defect, stop and escalate instead of guessing.
 - If multiple failures suggest the plan is unsound, report that directly.
-- In financial flows, preserve invariants before convenience:
+- Apply controls according to the task tier, not by habit:
+  - `Tier 0`: basic functional correctness and regression discipline
+  - `Tier 1`: state, permission, and consistency discipline
+  - `Tier 2`: explicit state-machine, retry, audit, and risk-control discipline
+  - `Tier 3`: full financial discipline
+- In Tier 3 flows, preserve invariants before convenience:
   - no balance mutation without journaling
   - no write path without idempotency protection
   - no distributed side effect without an outcome or compensation model
@@ -53,8 +58,9 @@ Stop execution and escalate when:
 - a verification step repeatedly fails
 - the plan contradicts the existing codebase in a material way
 - completing the task requires design decisions that were never approved
-- a financial write path lacks atomicity, reversal handling, or uniqueness protection
-- the implementation would bypass journal, audit, limit, or reconciliation controls
+- a Tier 2 path lacks explicit state, retry, or audit treatment
+- a Tier 3 write path lacks atomicity, reversal handling, or uniqueness protection
+- a Tier 3 implementation would bypass journal, audit, limit, or reconciliation controls
 
 ## Exit Conditions
 
