@@ -58,13 +58,63 @@ function normalizeRole(value) {
   return role;
 }
 
+function shouldIgnoreText(text) {
+  if (!text || typeof text !== 'string') {
+    return true;
+  }
+
+  const normalized = text.trim();
+  if (!normalized) {
+    return true;
+  }
+
+  const lower = normalized.toLowerCase();
+  const ignoredPrefixes = [
+    '<local-command-caveat>',
+    '<command-name>',
+    '<command-message>',
+    '<command-args>',
+    '<local-command-stdout>',
+    '<local-command-stderr>',
+    '<local-command-exit-code>'
+  ];
+
+  if (ignoredPrefixes.some((prefix) => lower.startsWith(prefix))) {
+    return true;
+  }
+
+  if (lower.includes('<system-reminder>')) {
+    return true;
+  }
+
+  return false;
+}
+
+function looksLikeSerializedTranscript(text) {
+  const normalized = text.trim();
+  if (!normalized.startsWith('{')) {
+    return false;
+  }
+
+  const transcriptMarkers = [
+    '"parentUuid"',
+    '"sessionId"',
+    '"toolUseResult"',
+    '"sourceToolAssistantUUID"',
+    '"entrypoint"',
+    '"gitBranch"'
+  ];
+
+  return transcriptMarkers.filter((marker) => normalized.includes(marker)).length >= 2;
+}
+
 function pushMessage(messages, role, text) {
   if (!text || typeof text !== 'string') {
     return;
   }
 
   const normalized = text.trim();
-  if (!normalized) {
+  if (!normalized || shouldIgnoreText(normalized) || looksLikeSerializedTranscript(normalized)) {
     return;
   }
 
@@ -74,7 +124,88 @@ function pushMessage(messages, role, text) {
   });
 }
 
-function walkTranscript(value, messages, inheritedRole = '') {
+function extractContentBlocks(content, role, messages) {
+  if (content == null) {
+    return;
+  }
+
+  if (typeof content === 'string') {
+    pushMessage(messages, role, content);
+    return;
+  }
+
+  if (!Array.isArray(content)) {
+    return;
+  }
+
+  for (const item of content) {
+    if (typeof item === 'string') {
+      pushMessage(messages, role, item);
+      continue;
+    }
+
+    if (!item || typeof item !== 'object') {
+      continue;
+    }
+
+    const blockType = String(item.type || '').toLowerCase();
+
+    if (blockType === 'tool_use' || blockType === 'tool_result' || blockType === 'thinking') {
+      continue;
+    }
+
+    if (blockType === 'text' && typeof item.text === 'string') {
+      pushMessage(messages, role, item.text);
+      continue;
+    }
+
+    if (typeof item.text === 'string') {
+      pushMessage(messages, role, item.text);
+    }
+
+    if (typeof item.content === 'string') {
+      pushMessage(messages, role, item.content);
+    }
+  }
+}
+
+function collectMessagesFromJsonl(raw, messages) {
+  let parsedAny = false;
+
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      continue;
+    }
+
+    const entry = safeJsonParse(trimmed);
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+
+    parsedAny = true;
+
+    if (entry.isMeta) {
+      continue;
+    }
+
+    if (entry.type !== 'user' && entry.type !== 'assistant') {
+      continue;
+    }
+
+    const message = entry.message;
+    if (!message || typeof message !== 'object') {
+      continue;
+    }
+
+    const role = normalizeRole(message.role || entry.type);
+    extractContentBlocks(message.content, role, messages);
+  }
+
+  return parsedAny;
+}
+
+function walkStructuredTranscript(value, messages, inheritedRole = '') {
   if (value == null) {
     return;
   }
@@ -86,12 +217,16 @@ function walkTranscript(value, messages, inheritedRole = '') {
 
   if (Array.isArray(value)) {
     for (const item of value) {
-      walkTranscript(item, messages, inheritedRole);
+      walkStructuredTranscript(item, messages, inheritedRole);
     }
     return;
   }
 
   if (typeof value !== 'object') {
+    return;
+  }
+
+  if (value.isMeta) {
     return;
   }
 
@@ -109,25 +244,14 @@ function walkTranscript(value, messages, inheritedRole = '') {
     pushMessage(messages, currentRole, value.message);
   }
 
-  if (Array.isArray(value.content)) {
-    for (const item of value.content) {
-      if (typeof item === 'string') {
-        pushMessage(messages, currentRole, item);
-      } else if (item && typeof item === 'object') {
-        if (typeof item.text === 'string') {
-          pushMessage(messages, currentRole, item.text);
-        }
-        if (typeof item.content === 'string') {
-          pushMessage(messages, currentRole, item.content);
-        }
-        walkTranscript(item, messages, currentRole);
-      }
-    }
-  }
+  extractContentBlocks(value.content, currentRole, messages);
 
-  for (const entry of Object.values(value)) {
+  for (const [key, entry] of Object.entries(value)) {
+    if (key === 'content' || key === 'text' || key === 'message') {
+      continue;
+    }
     if (entry && typeof entry === 'object') {
-      walkTranscript(entry, messages, currentRole);
+      walkStructuredTranscript(entry, messages, currentRole);
     }
   }
 }
@@ -148,11 +272,29 @@ function dedupe(items) {
   return output;
 }
 
+function normalizeCapturedText(text, maxLength = 220) {
+  const normalized = String(text || '')
+    .replace(/\*\*/g, '')
+    .replace(/`+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) {
+    return '';
+  }
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
 function takeTopMatches(messages, matcher, maxItems = 3) {
   const matches = [];
   for (const message of messages) {
     if (matcher(message)) {
-      matches.push(message.text);
+      matches.push(normalizeCapturedText(message.text, 240));
       if (matches.length >= maxItems) {
         break;
       }
@@ -252,6 +394,24 @@ const concernKeywords = [
   '隐患'
 ];
 
+const strongConcernKeywords = [
+  'residual risk',
+  'verification gap',
+  'follow up',
+  'follow-up',
+  'needs attention',
+  'needs follow up',
+  'needs follow-up',
+  '待跟进',
+  '待确认',
+  '需跟进',
+  '需要关注',
+  '风险',
+  '隐患'
+];
+
+const statusMarkers = ['done_with_concerns', 'blocked', 'needs_context'];
+
 function containsKeyword(text, keywords) {
   const lower = text.toLowerCase();
   return keywords.some((keyword) => lower.includes(keyword));
@@ -263,6 +423,129 @@ function isExplicitUserIssue(text, explicitOnly) {
   }
 
   return containsKeyword(text, explicitUserIssueMarkers);
+}
+
+function isNoiseLine(line) {
+  const normalized = line.trim();
+  if (!normalized) {
+    return true;
+  }
+
+  if (
+    normalized === '```' ||
+    normalized.startsWith('```') ||
+    normalized.startsWith('|') ||
+    /^[-:| ]+$/.test(normalized) ||
+    /^#{1,6}\s/.test(normalized)
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function cleanConcernLine(line) {
+  return normalizeCapturedText(
+    line
+      .replace(/^[*\-+]\s+/, '')
+      .replace(/^\d+[.)]\s+/, '')
+      .replace(/^status[:：]\s*/i, ''),
+    220
+  );
+}
+
+function isResolvedOrPositiveLine(line) {
+  const normalized = line.trim();
+  const lower = normalized.toLowerCase();
+
+  if (!normalized) {
+    return true;
+  }
+
+  if (normalized.startsWith('✅') || normalized.startsWith('✔')) {
+    return true;
+  }
+
+  if (
+    lower.includes('passed') ||
+    lower.includes('all tests passed') ||
+    normalized.includes('验证通过') ||
+    normalized.includes('全部通过') ||
+    normalized.includes('已通过') ||
+    normalized.includes('工作正常') ||
+    normalized.includes('生效')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function extractAssistantConcernSnippets(text) {
+  const normalizedText = String(text || '').replace(/\r/g, '');
+  const lower = normalizedText.toLowerCase();
+  const lines = normalizedText
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => !isNoiseLine(line));
+
+  const snippets = [];
+  const statusLineIndex = lines.findIndex((line) => statusMarkers.some((marker) => line.toLowerCase().includes(marker)));
+
+  if (statusLineIndex >= 0) {
+    for (const line of lines.slice(statusLineIndex + 1)) {
+      if (/^(done|done_with_concerns|blocked|needs_context)$/i.test(line)) {
+        continue;
+      }
+
+      if (/^optimization suggestions[:：]?$/i.test(line)) {
+        break;
+      }
+
+      if (/^[*\-+]\s+/.test(line) || /^\d+[.)]\s+/.test(line)) {
+        const cleaned = cleanConcernLine(line);
+        if (cleaned && !isResolvedOrPositiveLine(cleaned)) {
+          snippets.push(cleaned);
+        }
+      }
+
+      if (snippets.length >= 3) {
+        break;
+      }
+    }
+
+    if (snippets.length > 0) {
+      return dedupe(snippets).slice(0, 3);
+    }
+
+    const fallbackLines = lines
+      .slice(statusLineIndex + 1)
+      .map((line) => cleanConcernLine(line))
+      .filter((line) => line && !isResolvedOrPositiveLine(line))
+      .slice(0, 2);
+
+    if (fallbackLines.length > 0) {
+      return dedupe(fallbackLines).slice(0, 2);
+    }
+  }
+
+  if (!containsKeyword(lower, strongConcernKeywords)) {
+    return [];
+  }
+
+  for (const line of lines) {
+    if (containsKeyword(line, strongConcernKeywords)) {
+      const cleaned = cleanConcernLine(line);
+      if (cleaned && !isResolvedOrPositiveLine(cleaned)) {
+        snippets.push(cleaned);
+      }
+    }
+    if (snippets.length >= 2) {
+      break;
+    }
+  }
+
+  return dedupe(snippets).slice(0, 2);
 }
 
 function buildSuggestions(issues, concerns) {
@@ -318,19 +601,13 @@ if (fs.existsSync(markerFile)) {
 }
 
 const transcriptRaw = fs.readFileSync(transcriptPath, 'utf8');
-const transcriptJson = safeJsonParse(transcriptRaw);
 const messages = [];
+const parsedJsonl = collectMessagesFromJsonl(transcriptRaw, messages);
 
-if (transcriptJson) {
-  walkTranscript(transcriptJson, messages);
-}
-
-if (messages.length === 0) {
-  for (const line of transcriptRaw.split('\n')) {
-    const trimmed = line.trim();
-    if (trimmed) {
-      messages.push({ role: '', text: trimmed });
-    }
+if (!parsedJsonl) {
+  const transcriptJson = safeJsonParse(transcriptRaw);
+  if (transcriptJson) {
+    walkStructuredTranscript(transcriptJson, messages);
   }
 }
 
@@ -341,10 +618,11 @@ const userIssues = takeTopMatches(
     isExplicitUserIssue(message.text, config.learning.recordExplicitUserIssuesOnly)
 );
 
-const assistantConcerns = takeTopMatches(
-  messages,
-  (message) => (message.role === 'assistant' || message.role === '') && containsKeyword(message.text, concernKeywords)
-);
+const assistantConcerns = dedupe(
+  messages
+    .filter((message) => message.role === 'assistant' || message.role === '')
+    .flatMap((message) => extractAssistantConcernSnippets(message.text))
+).slice(0, 3);
 
 if (userIssues.length === 0 && assistantConcerns.length === 0) {
   fs.writeFileSync(markerFile, `${new Date().toISOString()}\n`);
