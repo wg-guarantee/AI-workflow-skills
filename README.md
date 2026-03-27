@@ -27,6 +27,17 @@ Claude Code 技能集合仓库。
 - 每日 learning 记录能力：默认只记录用户显式提及的问题
 - 金融级设计基线：事务、幂等、防篡改、审计、资金安全控制
 
+核心 skill 用法概览：
+
+- `wefi-intake`：会话入口与流程分诊
+- `wefi-scope`：把需求收敛成可批准设计
+- `wefi-sequence`：把设计拆成可执行计划
+- `wefi-execute`：按计划逐步实施
+- `wefi-review-loop`：用多 agent 做实现与审查闭环
+- `wefi-root-trace`：先做根因分析再修复
+- `wefi-commit-gate`：按项目策略控制 git 提交
+- `wefi-exit-check`：在声称完成前强制验证
+
 项目说明见 [wefidevkits/README.md](wefidevkits/README.md)。
 
 ## 使用 wefidevkits
