@@ -386,13 +386,25 @@ npm run install:project -- --project-dir /path/to/your/project
 .claude/settings.json
 ```
 
-安装器不会直接覆盖它，而是更新：
+安装器会自动把 `wefidevkits` 需要的 hooks 合并进现有的：
+
+```text
+.claude/settings.json
+```
+
+同时会写出两个辅助文件：
 
 ```text
 .claude/settings.wefidevkits.json
+.claude/settings.backup.before-wefidevkits.json
 ```
 
-这时需要把该文件里的 hook 变更手动合并回项目自己的 `.claude/settings.json`。
+其中：
+
+- `settings.wefidevkits.json` 用作参考 snippet
+- `settings.backup.before-wefidevkits.json` 是自动合并前的备份
+
+这意味着通常不再需要手工把 snippet 合并回 `settings.json`。
 
 ### 5. 关于配置保留
 

@@ -77,6 +77,68 @@ function readJsonFile(filePath) {
   }
 }
 
+function writeJsonFile(filePath, value) {
+  ensureDir(path.dirname(filePath));
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function mergeHookCommands(existingHooks = [], sourceHooks = []) {
+  const merged = [...existingHooks];
+  const seen = new Set(existingHooks.map((hook) => JSON.stringify(hook)));
+
+  for (const hook of sourceHooks) {
+    const key = JSON.stringify(hook);
+    if (seen.has(key)) {
+      continue;
+    }
+    merged.push(hook);
+    seen.add(key);
+  }
+
+  return merged;
+}
+
+function mergeHookEntries(existingEntries = [], sourceEntries = []) {
+  const merged = [...existingEntries];
+
+  for (const sourceEntry of sourceEntries) {
+    const sourceMatcher = sourceEntry.matcher || '';
+    const existingIndex = merged.findIndex((entry) => (entry.matcher || '') === sourceMatcher);
+
+    if (existingIndex === -1) {
+      merged.push(sourceEntry);
+      continue;
+    }
+
+    const existingEntry = merged[existingIndex];
+    merged[existingIndex] = {
+      ...existingEntry,
+      ...sourceEntry,
+      matcher: sourceEntry.matcher ?? existingEntry.matcher,
+      hooks: mergeHookCommands(existingEntry.hooks || [], sourceEntry.hooks || [])
+    };
+  }
+
+  return merged;
+}
+
+function mergeSettings(existingSettings = {}, sourceSettings = {}) {
+  const existingHooks = existingSettings.hooks || {};
+  const sourceHooks = sourceSettings.hooks || {};
+  const mergedHooks = { ...existingHooks };
+
+  for (const [eventName, sourceEntries] of Object.entries(sourceHooks)) {
+    const existingEntries = existingHooks[eventName] || [];
+    mergedHooks[eventName] = mergeHookEntries(existingEntries, sourceEntries);
+  }
+
+  return {
+    ...existingSettings,
+    ...sourceSettings,
+    hooks: mergedHooks
+  };
+}
+
 function writeWefiConfig(targetFile, updates = {}) {
   const existing = readJsonFile(targetFile);
   const config = {
@@ -91,8 +153,7 @@ function writeWefiConfig(targetFile, updates = {}) {
       ...(updates.learning || {})
     }
   };
-  ensureDir(path.dirname(targetFile));
-  fs.writeFileSync(targetFile, `${JSON.stringify(config, null, 2)}\n`);
+  writeJsonFile(targetFile, config);
 }
 
 function installUserSkills() {
@@ -113,6 +174,7 @@ function installProjectBundle(projectDir, gitCommitMode) {
   const sourceConfigFile = path.join(CLAUDE_BUILD_ROOT, 'wefidevkits.json');
   const settingsFile = path.join(claudeDir, 'settings.json');
   const settingsSnippetFile = path.join(claudeDir, 'settings.wefidevkits.json');
+  const settingsBackupFile = path.join(claudeDir, 'settings.backup.before-wefidevkits.json');
   const configFile = path.join(claudeDir, 'wefidevkits.json');
 
   copyDir(sourceSkillsDir, targetSkillsDir);
@@ -130,9 +192,17 @@ function installProjectBundle(projectDir, gitCommitMode) {
   }
 
   if (fs.existsSync(settingsFile)) {
-    fs.copyFileSync(sourceSettingsFile, settingsSnippetFile);
+    const existingSettings = readJsonFile(settingsFile);
+    const sourceSettings = readJsonFile(sourceSettingsFile);
+    const mergedSettings = mergeSettings(existingSettings, sourceSettings);
+
+    fs.copyFileSync(settingsFile, settingsBackupFile);
+    writeJsonFile(settingsSnippetFile, sourceSettings);
+    writeJsonFile(settingsFile, mergedSettings);
     console.log(`Installed skills and hooks into ${claudeDir}`);
-    console.log(`Existing settings preserved. Merge hooks from ${settingsSnippetFile} into ${settingsFile}.`);
+    console.log(`Merged wefidevkits hooks into ${settingsFile}.`);
+    console.log(`Backup of the previous settings was saved to ${settingsBackupFile}.`);
+    console.log(`Reference snippet was written to ${settingsSnippetFile}.`);
     console.log(`Git commit mode config is at ${configFile}.`);
     return;
   }
