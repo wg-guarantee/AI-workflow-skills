@@ -1,6 +1,6 @@
 {
   "name": "wefidevkits",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,12 @@
     "install:project": "npm run build && node scripts/install-claude.mjs --target project",
     "install:claude:user": "npm run install:user",
     "install:claude:project": "npm run install:project",
-    "package:claude-plugin": "node scripts/package-claude-plugin.mjs",
+    "update:user": "node scripts/update-claude.mjs --target user",
+    "update:project": "node scripts/update-claude.mjs --target project",
+    "update:user:local": "npm run build && node scripts/update-claude.mjs --target user --from-local-build",
+    "update:project:local": "npm run build && node scripts/update-claude.mjs --target project --from-local-build",
+    "package:claude-plugin": "npm run build && node scripts/package-claude-plugin.mjs",
+    "package:claude:bundle": "npm run build && node scripts/package-claude-distribution.mjs",
     "set:claude:commit-mode": "node scripts/set-commit-mode.mjs"
   }
 }

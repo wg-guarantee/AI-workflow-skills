@@ -1,0 +1,47 @@
+name: release-wefidevkits
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: wefidevkits
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build bundle
+        run: npm run package:claude:bundle
+
+      - name: Read version
+        id: version
+        run: echo "version=$(node -p \"require('./package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag matches package version
+        if: github.event_name == 'push'
+        run: |
+          test "${GITHUB_REF_NAME}" = "v${{ steps.version.outputs.version }}"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: wefidevkits v${{ steps.version.outputs.version }}
+          files: |
+            wefidevkits/build/distributions/wefidevkits-claude-code-v${{ steps.version.outputs.version }}.tar.gz
+            wefidevkits/build/distributions/wefidevkits-claude-code-v${{ steps.version.outputs.version }}.sha256.txt
+            wefidevkits/build/distributions/wefidevkits-claude-code-v${{ steps.version.outputs.version }}.release.json

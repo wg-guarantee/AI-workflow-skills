@@ -1,0 +1,14 @@
+{
+  "name": "wefidevkits-claude-code-bundle",
+  "version": "{{VERSION}}",
+  "private": true,
+  "type": "module",
+  "description": "Shareable Claude Code installer bundle for wefidevkits.",
+  "scripts": {
+    "install:user": "node scripts/install-claude.mjs --target user",
+    "install:project": "node scripts/install-claude.mjs --target project",
+    "update:user": "node scripts/update-claude.mjs --target user",
+    "update:project": "node scripts/update-claude.mjs --target project",
+    "set:commit-mode": "node scripts/set-commit-mode.mjs"
+  }
+}

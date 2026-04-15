@@ -1,0 +1,102 @@
+# wefidevkits Claude Code 安装说明
+
+这是 `wefidevkits` 面向 Claude Code 的可分发安装包，版本 `{{VERSION}}`。
+
+## 包内内容
+
+- `.claude-plugin/`：Claude 插件元数据
+- `build/claude/`：可直接供安装脚本使用的构建产物
+- `project-template/.claude/`：项目级安装模板
+- `user-template/skills/`：全局 skills 模板
+- `scripts/install-claude.mjs`：安装脚本
+- `scripts/set-commit-mode.mjs`：提交策略切换脚本
+
+## 前置条件
+
+- 已安装 Claude Code
+- 本机可运行 `node`
+
+## 推荐安装方式
+
+先解压安装包，再进入解压目录执行。
+
+### 安装到某个 Claude Code 项目
+
+```bash
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project
+```
+
+也可以直接用包内 `package.json`：
+
+```bash
+npm run install:project -- --project-dir /path/to/your/project
+```
+
+如果要同时指定 git 提交策略：
+
+```bash
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode confirm-each
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode skill-governed
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project --git-commit-mode auto
+```
+
+### 安装为当前用户全局 skills
+
+```bash
+node scripts/install-claude.mjs --target user
+```
+
+或：
+
+```bash
+npm run install:user
+```
+
+## 安装后会发生什么
+
+项目级安装会把以下内容复制到目标项目：
+
+- `.claude/skills/`
+- `.claude/hooks/`
+- `.claude/wefidevkits.json`
+
+如果目标项目原本就有 `.claude/settings.json`，安装器会：
+
+- 自动合并 `wefidevkits` 需要的 hooks
+- 生成 `.claude/settings.wefidevkits.json` 作为参考片段
+- 生成 `.claude/settings.backup.before-wefidevkits.json` 作为备份
+
+## 手工安装兜底方式
+
+不想运行脚本时，也可以手工复制：
+
+- `project-template/.claude/` 到你的 Claude Code 项目根目录
+- `user-template/skills/` 到 `~/.claude/skills/`
+
+但如果目标项目已经有 `.claude/settings.json`，仍建议优先使用安装脚本完成合并，避免覆盖现有配置。
+
+## 安装后建议
+
+- 重开一个 Claude Code 会话
+- 首次会话确认 `SessionStart` hook 已触发 `wefi-intake`
+- 后续更新可直接在本地执行：
+
+```bash
+./.claude/wefidevkits/bin/wefidevkits-update --target project --project-dir /path/to/your/project --check
+./.claude/wefidevkits/bin/wefidevkits-update --target project --project-dir /path/to/your/project
+```
+
+- 如果是用户级安装，可执行：
+
+```bash
+~/.claude/wefidevkits/bin/wefidevkits-update --target user --check
+~/.claude/wefidevkits/bin/wefidevkits-update --target user
+```
+
+- 如需切换提交策略，执行：
+
+```bash
+node scripts/set-commit-mode.mjs --project-dir /path/to/your/project --mode confirm-each
+node scripts/set-commit-mode.mjs --project-dir /path/to/your/project --mode skill-governed
+node scripts/set-commit-mode.mjs --project-dir /path/to/your/project --mode auto
+```

@@ -1,4 +1,5 @@
 import fs from 'fs';
+import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -70,6 +71,10 @@ function ensureDir(dirPath) {
 function cleanDir(dirPath) {
   fs.rmSync(dirPath, { recursive: true, force: true });
   ensureDir(dirPath);
+}
+
+function sha256File(filePath) {
+  return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 }
 
 function copyDir(sourceDir, targetDir) {
@@ -297,8 +302,82 @@ function copyBundledResources(sourceDir, targetDir) {
   }
 }
 
+function collectFiles(baseDir, currentDir = baseDir) {
+  const entries = fs.readdirSync(currentDir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name));
+  const files = [];
+
+  for (const entry of entries) {
+    const fullPath = path.join(currentDir, entry.name);
+    if (entry.isDirectory()) {
+      files.push(...collectFiles(baseDir, fullPath));
+      continue;
+    }
+    files.push(fullPath);
+  }
+
+  return files;
+}
+
+function relativePosix(baseDir, fullPath) {
+  return path.relative(baseDir, fullPath).split(path.sep).join('/');
+}
+
+function buildUpdateManifest(hostBuildRoot, hostKey, packageVersion) {
+  const files = [];
+  const includeRoots = [
+    { sourceDir: path.join(hostBuildRoot, 'skills'), logicalPrefix: 'skills' },
+    { sourceDir: path.join(hostBuildRoot, 'hooks'), logicalPrefix: 'hooks' },
+    { sourceDir: path.join(hostBuildRoot, 'project-template'), logicalPrefix: 'project-template' }
+  ];
+
+  for (const includeRoot of includeRoots) {
+    if (!fs.existsSync(includeRoot.sourceDir)) {
+      continue;
+    }
+
+    for (const fullPath of collectFiles(includeRoot.sourceDir)) {
+      const relativePath = relativePosix(includeRoot.sourceDir, fullPath);
+      files.push({
+        source: relativePosix(hostBuildRoot, fullPath),
+        logicalTarget: `${includeRoot.logicalPrefix}/${relativePath}`,
+        sha256: sha256File(fullPath)
+      });
+    }
+  }
+
+  const standaloneFiles = [
+    'bootstrap.md',
+    'manifest.json',
+    'settings.wefidevkits.json',
+    'wefidevkits.json'
+  ];
+
+  for (const fileName of standaloneFiles) {
+    const fullPath = path.join(hostBuildRoot, fileName);
+    if (!fs.existsSync(fullPath)) {
+      continue;
+    }
+    files.push({
+      source: relativePosix(hostBuildRoot, fullPath),
+      logicalTarget: fileName,
+      sha256: sha256File(fullPath)
+    });
+  }
+
+  return {
+    packageName: 'wefidevkits',
+    packageVersion,
+    host: hostKey,
+    generatedAt: new Date().toISOString(),
+    schemaVersion: 1,
+    files
+  };
+}
+
 const sharedPreludeTemplate = read('shared/shared-prelude.md.tmpl');
 const bootstrapTemplate = read('shared/bootstrap.md.tmpl');
+const packageMeta = JSON.parse(read('package.json'));
+const packageVersion = packageMeta.version || '0.0.0';
 
 const buildRoot = path.join(ROOT, 'build');
 cleanDir(buildRoot);
@@ -352,6 +431,12 @@ for (const [hostKey, host] of Object.entries(HOSTS)) {
   fs.writeFileSync(
     path.join(hostBuildRoot, 'manifest.json'),
     `${JSON.stringify(manifest, null, 2)}\n`
+  );
+
+  const updateManifest = buildUpdateManifest(hostBuildRoot, hostKey, packageVersion);
+  fs.writeFileSync(
+    path.join(hostBuildRoot, 'update-manifest.json'),
+    `${JSON.stringify(updateManifest, null, 2)}\n`
   );
 }
 

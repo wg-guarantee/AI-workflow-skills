@@ -1,0 +1,100 @@
+rules:
+  - id: wefidevkits-no-eval
+    message: Avoid dynamic code execution via eval or Function.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      technology:
+        - nodejs
+      cwe:
+        - "CWE-95: Improper Neutralization of Directives in Dynamically Evaluated Code"
+      owasp:
+        - A03:2021 - Injection
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: new Function(...)
+
+  - id: wefidevkits-no-shell-exec
+    message: Avoid shell-based child_process execution. Prefer execFile/spawn without shell and validate all arguments.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      technology:
+        - nodejs
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      owasp:
+        - A03:2021 - Injection
+    patterns:
+      - pattern-either:
+          - pattern: exec(...)
+          - pattern: execSync(...)
+          - pattern: spawn(..., { ..., shell: true, ... })
+          - pattern: spawnSync(..., { ..., shell: true, ... })
+
+  - id: wefidevkits-no-insecure-tls-env
+    message: Do not disable TLS verification with NODE_TLS_REJECT_UNAUTHORIZED=0.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      technology:
+        - nodejs
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      owasp:
+        - A02:2021 - Cryptographic Failures
+    patterns:
+      - pattern-either:
+          - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+          - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+
+  - id: wefidevkits-no-reject-unauthorized-false
+    message: Do not set rejectUnauthorized to false. Use a trusted CA bundle or test-only isolation instead.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      technology:
+        - nodejs
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      owasp:
+        - A02:2021 - Cryptographic Failures
+    patterns:
+      - pattern-either:
+          - pattern: new https.Agent({ ..., rejectUnauthorized: false, ... })
+          - pattern: https.request(..., { ..., rejectUnauthorized: false, ... }, ...)
+          - pattern: https.get(..., { ..., rejectUnauthorized: false, ... }, ...)
+
+  - id: wefidevkits-no-world-writable-permissions
+    message: Avoid world-writable file permissions.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    metadata:
+      category: security
+      technology:
+        - nodejs
+      cwe:
+        - "CWE-732: Incorrect Permission Assignment for Critical Resource"
+      owasp:
+        - A01:2021 - Broken Access Control
+    patterns:
+      - pattern-either:
+          - pattern: chmodSync(..., 0o777)
+          - pattern: chmodSync(..., 0x1ff)
+          - pattern: chmod(..., 0o777)
+          - pattern: chmod(..., 0x1ff)

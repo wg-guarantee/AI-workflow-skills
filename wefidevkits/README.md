@@ -458,9 +458,88 @@ npm run install:project -- --project-dir /path/to/your/project --git-commit-mode
 ## 打包为可分发插件
 
 ```bash
-npm run build
 npm run package:claude-plugin
 ```
+
+产物目录：
+
+- `build/claude-plugin/wefidevkits/`
+
+## 生成可直接发人的 Claude Code 安装包
+
+```bash
+npm run package:claude:bundle
+```
+
+该命令会自动先构建，再输出三类产物：
+
+- `build/distributions/wefidevkits-claude-code-v<version>/`
+- `build/distributions/wefidevkits-claude-code-v<version>.tar.gz`
+- `build/distributions/wefidevkits-claude-code-v<version>.sha256.txt`
+
+其中：
+
+- 目录版适合本机检查内容或二次分发
+- `tar.gz` 适合直接发给其他 Claude Code 使用者
+- `sha256.txt` 用于校验归档文件未损坏
+
+安装包内已包含：
+
+- `.claude-plugin/`
+- `build/claude/`
+- `project-template/.claude/`
+- `user-template/skills/`
+- `scripts/install-claude.mjs`
+- `scripts/set-commit-mode.mjs`
+- `INSTALL-CLAUDE.md`
+
+接收方解压后，可直接执行：
+
+```bash
+node scripts/install-claude.mjs --target project --project-dir /path/to/your/project
+```
+
+或：
+
+```bash
+node scripts/install-claude.mjs --target user
+```
+
+安装完成后，目标项目或用户目录里会带一个本地 updater：
+
+- 项目级：`./.claude/wefidevkits/bin/wefidevkits-update`
+- 用户级：`~/.claude/wefidevkits/bin/wefidevkits-update`
+
+常用更新命令：
+
+```bash
+./.claude/wefidevkits/bin/wefidevkits-update --target project --project-dir /path/to/your/project --check
+./.claude/wefidevkits/bin/wefidevkits-update --target project --project-dir /path/to/your/project
+./.claude/wefidevkits/bin/wefidevkits-update --target project --project-dir /path/to/your/project --dry-run
+```
+
+如果本地改过已托管的 `.claude/hooks/` 或 `.claude/skills/` 文件，updater 会先报 `conflict`，默认不会直接覆盖。
+
+## 安全监测
+
+仓库已包含一套 GitHub Actions 驱动的安全监测与 PR 阻断配置：
+
+- `.github/workflows/security-pr.yml`
+- `.semgrep/wefidevkits.yml`
+- `.gitleaks.toml`
+- `docs/security-monitoring.md`
+
+这套配置会在 PR、主干 push、定时任务和手动触发时运行：
+
+- `Semgrep`：扫描脚本和源码中的明显安全模式风险
+- `Gitleaks`：扫描硬编码 secret
+- `Trivy`：扫描高危依赖和高危配置问题
+
+要让它真正阻断 PR，需要在 GitHub 仓库的 branch protection 里把以下 checks 设为 required：
+
+- `semgrep`
+- `gitleaks`
+- `trivy`
 
 ## 仓库中现有技能集合
 
@@ -482,6 +561,9 @@ node scripts/generate-skills.mjs
 node scripts/validate-skills.mjs
 npm run install:user
 npm run install:project -- --project-dir /path/to/project
+npm run update:user
+npm run update:project -- --project-dir /path/to/project
 npm run set:claude:commit-mode -- --project-dir /path/to/project --mode confirm-each
 npm run package:claude-plugin
+npm run package:claude:bundle
 ```
