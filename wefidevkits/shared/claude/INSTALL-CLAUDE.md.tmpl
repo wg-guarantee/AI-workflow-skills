@@ -93,6 +93,21 @@ npm run install:user
 ~/.claude/wefidevkits/bin/wefidevkits-update --target user
 ```
 
+- 如果要给当前项目一键注入安全监测配置，可执行：
+
+```bash
+./.claude/wefidevkits/bin/wefidevkits-setup-security --project-dir /path/to/your/project
+```
+
+- 该命令会生成：
+
+```text
+.github/workflows/security-pr.yml
+.semgrep/wefidevkits.yml
+.gitleaks.toml
+docs/security-monitoring.md
+```
+
 - 如需切换提交策略，执行：
 
 ```bash

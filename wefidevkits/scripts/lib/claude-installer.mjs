@@ -190,7 +190,8 @@ export function getUpdaterRuntimeInfo(targetInfo) {
   return {
     runtimeRoot,
     binDir: path.join(runtimeRoot, 'bin'),
-    libDir: path.join(runtimeRoot, 'bin', 'lib')
+    libDir: path.join(runtimeRoot, 'bin', 'lib'),
+    sharedDir: path.join(runtimeRoot, 'bin', 'shared')
   };
 }
 
@@ -198,9 +199,12 @@ export function installUpdaterRuntime(sourceScriptsRoot, targetInfo) {
   const runtime = getUpdaterRuntimeInfo(targetInfo);
   ensureDir(runtime.binDir);
   ensureDir(runtime.libDir);
+  ensureDir(runtime.sharedDir);
 
   copyFile(path.join(sourceScriptsRoot, 'update-claude.mjs'), path.join(runtime.binDir, 'update-claude.mjs'), 0o755);
+  copyFile(path.join(sourceScriptsRoot, 'setup-security-monitoring.mjs'), path.join(runtime.binDir, 'setup-security-monitoring.mjs'), 0o755);
   copyFile(path.join(sourceScriptsRoot, 'lib', 'claude-installer.mjs'), path.join(runtime.libDir, 'claude-installer.mjs'));
+  copyDir(path.join(sourceScriptsRoot, '..', 'shared', 'security'), path.join(runtime.sharedDir, 'security'));
 
   const launcher = [
     '#!/bin/sh',
@@ -209,6 +213,14 @@ export function installUpdaterRuntime(sourceScriptsRoot, targetInfo) {
     ''
   ].join('\n');
   fs.writeFileSync(path.join(runtime.binDir, 'wefidevkits-update'), launcher, { mode: 0o755 });
+
+  const securityLauncher = [
+    '#!/bin/sh',
+    'SCRIPT_DIR="$(CDPATH= cd -- "$(dirname "$0")" && pwd)"',
+    'exec node "$SCRIPT_DIR/setup-security-monitoring.mjs" "$@"',
+    ''
+  ].join('\n');
+  fs.writeFileSync(path.join(runtime.binDir, 'wefidevkits-setup-security'), securityLauncher, { mode: 0o755 });
 
   return runtime;
 }

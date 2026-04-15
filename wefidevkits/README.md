@@ -520,6 +520,25 @@ node scripts/install-claude.mjs --target user
 
 如果本地改过已托管的 `.claude/hooks/` 或 `.claude/skills/` 文件，updater 会先报 `conflict`，默认不会直接覆盖。
 
+如果你想把持续安全监测一键接到当前项目，可执行：
+
+```bash
+./.claude/wefidevkits/bin/wefidevkits-setup-security --project-dir /path/to/your/project
+```
+
+这会在目标项目生成：
+
+- `.github/workflows/security-pr.yml`
+- `.semgrep/wefidevkits.yml`
+- `.gitleaks.toml`
+- `docs/security-monitoring.md`
+
+如果你在 `wefidevkits` 仓库开发态直接操作，也可以执行：
+
+```bash
+npm run setup:security -- --project-dir /path/to/your/project
+```
+
 ## 安全监测
 
 仓库已包含一套 GitHub Actions 驱动的安全监测与 PR 阻断配置：

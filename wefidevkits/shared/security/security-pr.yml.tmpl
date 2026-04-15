@@ -1,0 +1,138 @@
+name: security-pr
+
+on:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - ".github/workflows/security-pr.yml"
+      - ".semgrep/**"
+      - ".gitleaks.toml"
+      - "docs/security-monitoring.md"
+{{PATH_FILTERS}}
+  push:
+    branches:
+      - main
+      - master
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  semgrep:
+    name: semgrep
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Semgrep
+        id: semgrep_scan
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v "$PWD:/src" \
+            -w /src \
+            returntocorp/semgrep:latest \
+            scan \
+            --config p/javascript \
+            --config p/nodejs \
+            --config p/python \
+            --config .semgrep/wefidevkits.yml \
+            --sarif \
+            --output semgrep.sarif \
+            --error \
+{{SEMGREP_TARGETS}}
+
+      - name: Upload Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Enforce Semgrep Gate
+        if: steps.semgrep_scan.outcome == 'failure'
+        run: exit 1
+
+  gitleaks:
+    name: gitleaks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        id: gitleaks_scan
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            zricethezav/gitleaks:latest \
+            dir /repo \
+            --config /repo/.gitleaks.toml \
+            --redact \
+            --report-format sarif \
+            --report-path /repo/gitleaks.sarif \
+            --exit-code 1
+
+      - name: Upload Gitleaks SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+          category: gitleaks
+
+      - name: Enforce Gitleaks Gate
+        if: steps.gitleaks_scan.outcome == 'failure'
+        run: exit 1
+
+  trivy:
+    name: trivy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Trivy
+        id: trivy_scan
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v "$PWD:/repo" \
+            aquasec/trivy:latest \
+            fs /repo \
+            --scanners vuln,misconfig \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format sarif \
+            --output /repo/trivy.sarif \
+            --exit-code 1 \
+{{TRIVY_SKIP_DIRS}}
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy.sarif
+          category: trivy
+
+      - name: Enforce Trivy Gate
+        if: steps.trivy_scan.outcome == 'failure'
+        run: exit 1

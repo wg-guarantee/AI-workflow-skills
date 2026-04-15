@@ -1,0 +1,31 @@
+# Security Monitoring
+
+This repository was bootstrapped with `wefidevkits` security monitoring.
+
+## What Runs
+
+- `Semgrep` scans the main executable source paths in this repository.
+- `Gitleaks` scans the repository for hard-coded secrets.
+- `Trivy` scans the repository filesystem for dependency vulnerabilities and high-risk misconfiguration.
+
+## What Blocks A PR
+
+- Any `Semgrep` finding from either the public JavaScript/Node.js/Python rulesets or the repository-local rules in `.semgrep/wefidevkits.yml`
+- Any `Gitleaks` finding outside the allowlisted placeholder and documentation paths in `.gitleaks.toml`
+- Any `Trivy` `HIGH` or `CRITICAL` vulnerability or misconfiguration, with `ignore-unfixed` enabled to reduce noise from issues with no published remediation yet
+
+## Recommended Branch Protection
+
+To make the checks enforceable, set these GitHub checks as required on your default branch:
+
+- `semgrep`
+- `gitleaks`
+- `trivy`
+
+## Generated Scope
+
+The initial scan scope was generated from the project structure detected at setup time:
+
+{{DETECTED_PATHS}}
+
+Review `.github/workflows/security-pr.yml` after setup and narrow or broaden the scope as needed for your repository.

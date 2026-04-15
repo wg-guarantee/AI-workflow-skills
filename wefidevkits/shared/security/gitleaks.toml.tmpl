@@ -1,0 +1,28 @@
+title = "wefidevkits secret scanning configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Ignore generated artifacts and documentation-heavy paths that use placeholders"
+paths = [
+  '''(^|/)build/''',
+  '''(^|/)dist/''',
+  '''(^|/)coverage/''',
+  '''(^|/)docs/''',
+  '''(^|/)node_modules/''',
+  '''(^|/).*\.md$''',
+  '''(^|/).*\.md\.tmpl$''',
+  '''(^|/).*\.json\.tmpl$''',
+  '''(^|/).*\.sh\.tmpl$''',
+  '''(^|/).*\.tar\.gz$''',
+  '''(^|/).*\.sha256\.txt$'''
+]
+
+[[allowlists]]
+description = "Ignore obvious examples and placeholders"
+regexes = [
+  '''(?i)(example|sample|dummy|placeholder|changeme|replace[_-]?me|test[_-]?token|test[_-]?key)''',
+  '''(?i)(your[_-]?(api|auth|access|secret|token|key|password))''',
+  '''(?i)(fake[_-]?(secret|token|key|password))'''
+]
