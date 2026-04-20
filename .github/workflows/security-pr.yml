@@ -25,7 +25,7 @@ on:
 permissions:
   contents: read
   pull-requests: write
-  security-events: write
+  actions: read
 
 concurrency:
   group: security-${{ github.workflow }}-${{ github.ref }}
@@ -62,19 +62,48 @@ jobs:
             skill-creating/scripts \
             mcp-builder/scripts
 
-      - name: Ensure Semgrep SARIF exists
-        if: always() && steps.semgrep_scan.outcome != 'success'
+      - name: Summarize Semgrep Results
+        if: always() && hashFiles('semgrep.sarif') != ''
         run: |
-          if [ ! -f semgrep.sarif ]; then
-            echo '{"version":"2.1.0","runs":[]}' > semgrep.sarif
+          echo "## Semgrep Scan Summary" >> $GITHUB_STEP_SUMMARY
+          count=$(python3 -c "
+          import json, sys
+          try:
+              with open('semgrep.sarif') as f:
+                  data = json.load(f)
+              total = sum(len(r.get('results', [])) for r in data.get('runs', []))
+              print(total)
+          except: print(0)
+          ")
+          if [ "$count" -gt 0 ]; then
+            echo "**Found $count finding(s)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json
+          with open('semgrep.sarif') as f:
+              data = json.load(f)
+          for run in data.get('runs', []):
+              for r in run.get('results', []):
+                  loc = r.get('locations', [{}])[0].get('physicalLocation', {})
+                  msg = r.get('message', {}).get('text', '')
+                  sev = r.get('level', 'WARNING')
+                  file = loc.get('artifactLocation', {}).get('uri', '?')
+                  line = loc.get('region', {}).get('startLine', '?')
+                  print(f'[{sev}] {file}:{line} - {msg}')
+          " >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No findings. :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Upload Semgrep SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Upload Semgrep SARIF Artifact
+        if: always() && hashFiles('semgrep.sarif') != ''
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: semgrep.sarif
-          category: semgrep
+          name: semgrep-report
+          path: semgrep.sarif
+          retention-days: 30
 
       - name: Enforce Semgrep Gate
         if: steps.semgrep_scan.outcome == 'failure'
@@ -103,19 +132,48 @@ jobs:
             --report-path /repo/gitleaks.sarif \
             --exit-code 1
 
-      - name: Ensure Gitleaks SARIF exists
-        if: always() && steps.gitleaks_scan.outcome != 'success'
+      - name: Summarize Gitleaks Results
+        if: always() && hashFiles('gitleaks.sarif') != ''
         run: |
-          if [ ! -f gitleaks.sarif ]; then
-            echo '{"version":"2.1.0","runs":[]}' > gitleaks.sarif
+          echo "## Gitleaks Scan Summary" >> $GITHUB_STEP_SUMMARY
+          count=$(python3 -c "
+          import json, sys
+          try:
+              with open('gitleaks.sarif') as f:
+                  data = json.load(f)
+              total = sum(len(r.get('results', [])) for r in data.get('runs', []))
+              print(total)
+          except: print(0)
+          ")
+          if [ "$count" -gt 0 ]; then
+            echo "**Found $count finding(s)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json
+          with open('gitleaks.sarif') as f:
+              data = json.load(f)
+          for run in data.get('runs', []):
+              for r in run.get('results', []):
+                  loc = r.get('locations', [{}])[0].get('physicalLocation', {})
+                  msg = r.get('message', {}).get('text', '')
+                  sev = r.get('level', 'WARNING')
+                  file = loc.get('artifactLocation', {}).get('uri', '?')
+                  line = loc.get('region', {}).get('startLine', '?')
+                  print(f'[{sev}] {file}:{line} - {msg}')
+          " >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No findings. :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Upload Gitleaks SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Upload Gitleaks SARIF Artifact
+        if: always() && hashFiles('gitleaks.sarif') != ''
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: gitleaks.sarif
-          category: gitleaks
+          name: gitleaks-report
+          path: gitleaks.sarif
+          retention-days: 30
 
       - name: Enforce Gitleaks Gate
         if: steps.gitleaks_scan.outcome == 'failure'
@@ -155,19 +213,48 @@ jobs:
             --skip-dirs /repo/documentation-writer \
             --skip-dirs /repo/impeccable
 
-      - name: Ensure Trivy SARIF exists
-        if: always() && steps.trivy_scan.outcome != 'success'
+      - name: Summarize Trivy Results
+        if: always() && hashFiles('trivy.sarif') != ''
         run: |
-          if [ ! -f trivy.sarif ]; then
-            echo '{"version":"2.1.0","runs":[]}' > trivy.sarif
+          echo "## Trivy Scan Summary" >> $GITHUB_STEP_SUMMARY
+          count=$(python3 -c "
+          import json, sys
+          try:
+              with open('trivy.sarif') as f:
+                  data = json.load(f)
+              total = sum(len(r.get('results', [])) for r in data.get('runs', []))
+              print(total)
+          except: print(0)
+          ")
+          if [ "$count" -gt 0 ]; then
+            echo "**Found $count finding(s)**" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            python3 -c "
+          import json
+          with open('trivy.sarif') as f:
+              data = json.load(f)
+          for run in data.get('runs', []):
+              for r in run.get('results', []):
+                  loc = r.get('locations', [{}])[0].get('physicalLocation', {})
+                  msg = r.get('message', {}).get('text', '')
+                  sev = r.get('level', 'WARNING')
+                  file = loc.get('artifactLocation', {}).get('uri', '?')
+                  line = loc.get('region', {}).get('startLine', '?')
+                  print(f'[{sev}] {file}:{line} - {msg}')
+          " >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "No findings. :white_check_mark:" >> $GITHUB_STEP_SUMMARY
           fi
 
-      - name: Upload Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
+      - name: Upload Trivy SARIF Artifact
+        if: always() && hashFiles('trivy.sarif') != ''
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: trivy.sarif
-          category: trivy
+          name: trivy-report
+          path: trivy.sarif
+          retention-days: 30
 
       - name: Enforce Trivy Gate
         if: steps.trivy_scan.outcome == 'failure'
